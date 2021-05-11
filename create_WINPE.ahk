@@ -12,7 +12,7 @@ MenuFormat(listdisks)
 {
 	Gui, CreateWINPE:Add, ListBox, x15 y25 w535 h186 vListaDyskow, %listdisks%
 	Gui, CreateWINPE:Add, Button, x15 y220 w115 h50 gCreateWinpe vCreateWinpeButton, Create WINPE
-	;Gui, CreateWINPE:Add, Button, x152 y220 w115 h50 gUpdateWinpe, Update WINPE
+	Gui, CreateWINPE:Add, Button, x152 y220 w115 h50 gUpdateWinpe vUpdateWinpeButton, Update WINPE
 	;Gui, CreateWINPE:Add, Button, x292 y220 w115 h50 , Copy Images
 	Gui, CreateWINPE:Add, Button, x435 y220 w115 h50 gButtonClose vCloseButton, Close
 	Gui, CreateWINPE:Show, w565 h283, WINPE Creator
@@ -28,10 +28,22 @@ WaitWindow(text)
 	Gui, Wait:Show, NoActivate
 }
 
+CheckIfpathExist(patchWinpe)
+{
+	;Check for path if exist
+	if (!FileExist(patchWinpe))
+	{
+		MsgBox, 4112, Not found, Localization %patchWinpe% NOT EXIST!`nExiting app.
+		return
+	}
+}
+
 ;Start script=====================================================
 ;Globals==============================
+global patchWinpe
 global ListaDyskow
 global CreateWinpeButton
+global UpdateWinpeButton
 global CloseButton
 ;Variables==============================
 ;Credentials for winpeupdate
@@ -39,21 +51,21 @@ user_winpe = images
 pass_winpe := 123edc!@#EDC
 
 ;Path for copy winpe
-path_winpe = \\pcimages\winpe\media
+patchWinpe = \\pcimages\winpe\media
 
 ;Take disk data from local PC
 diskShow =
 diskList := ComObjCreate("WScript.Shell").Exec("powershell -windowstyle hidden Get-Disk | Format-List").StdOut.ReadAll()
 StringReplace, diskList, diskList, `n, , All
 pos = 1
-	While pos := RegExMatch(diskList,"UniqueId.*?IsBoot",disk, pos+StrLen(disk))
-	{
-		RegExMatch(disk,"O)(Number.*?: )(.*)(Path)",diskId)
-		RegExMatch(disk,"O)(Model.*?: )(.*)(Serial)",model)
-		RegExMatch(disk,"O)(Size.*?: )(.*)(Allocated)",size)
-		RegExMatch(disk,"O)(PartitionStyle.*?: )(.*)(IsReadOnly)",partitionType)
-		diskShow = % diskShow "No: "diskId[2]" === Model: "model[2]" === Size: "size[2]" === Partition Type: "partitionType[2]"|"
-	}
+While pos := RegExMatch(diskList,"UniqueId.*?IsBoot",disk, pos+StrLen(disk))
+{
+	RegExMatch(disk,"O)(Number.*?: )(.*)(Path)",diskId)
+	RegExMatch(disk,"O)(Model.*?: )(.*)(Serial)",model)
+	RegExMatch(disk,"O)(Size.*?: )(.*)(Allocated)",size)
+	RegExMatch(disk,"O)(PartitionStyle.*?: )(.*)(IsReadOnly)",partitionType)
+	diskShow = % diskShow "No: "diskId[2]" === Model: "model[2]" === Size: "size[2]" === Partition Type: "partitionType[2]"|"
+}
 
 MenuFormat(diskShow)
 return
@@ -61,13 +73,11 @@ return
 ;~ Creating pendrive
 CreateWinpe:
 GuiControl,Disable, CreateWinpeButton
+GuiControl,Disable, UpdateWinpeButton
 GuiControl,Disable, CloseButton
 Sleep, 20000
 ;Check for path if exist
-if (!FileExist(path_winpe)) {
-	MsgBox, 4112, Not found, Localization %path_winpe% NOT EXIST!`nExiting app.
-	return
-}
+CheckIfpathExist(patchWinpe)
 GuiControlGet, diskToFormat,,ListaDyskow
 RegExMatch(diskToFormat,"[0-9]{1}",idToFormat)
 if (idToFormat != "")
@@ -83,15 +93,42 @@ if (idToFormat != "")
 	MsgBox, 4144, Select, Select ANY disk
 	return
 }
-RunWait, powershell.exe -Command $secpasswd = ConvertTo-SecureString 'pass_winpe' -AsPlainText -Force;$mycreds = New-Object System.Management.Automation.PSCredential('%user_winpe%'`, $secpasswd);New-PSDrive -Name 'winpe' -PSProvider 'FileSystem' -Root %path_winpe% -credential $mycred;Copy-Item winpe:\* %partiWinpe%:\ -verbose -Recurse
+RunWait, powershell.exe -Command $secpasswd = ConvertTo-SecureString 'pass_winpe' -AsPlainText -Force;$mycreds = New-Object System.Management.Automation.PSCredential('%user_winpe%'`, $secpasswd);New-PSDrive -Name 'winpe' -PSProvider 'FileSystem' -Root %patchWinpe% -credential $mycred;Copy-Item winpe:\* %partiWinpe%:\ -verbose -Recurse
 FileCreateDir, %partiImages%:\Images
 GuiControl,Enable, CreateWinpeButton
+GuiControl,Enable, UpdateWinpeButton
 GuiControl,Enable, CloseButton
 MsgBox, 64, Done!, WinPE is created
-
 return
 
 UpdateWinpe:
+GuiControl,Disable, CreateWinpeButton
+GuiControl,Disable, UpdateWinpeButton
+GuiControl,Disable, CloseButton
+CheckIfpathExist(patchWinpe)
+GuiControlGet, diskToFormat,,ListaDyskow
+RegExMatch(diskToFormat,"[0-9]{1}",idToUpdate)
+if (idToUpdate != "")
+{
+	diskLetter := ComObjCreate("WScript.Shell").Exec("powershell -windowstyle hidden Get-Disk " idtoUpdate " | Get-Partition | Select-Object DriveLetter | Format-Custom").StdOut.ReadAll()
+	pos = 1
+	While pos := RegExMatch(diskLetter,"DriveLetter.*",partitionId, pos+StrLen(partitionId))
+	{
+		RegExMatch(partitionId,"(?<= = )[A-Z]{1}",letter)
+		pathToBootWim = %letter%:\sources\boot.wim
+		if (FileExist(pathToBootWim))
+		{
+			RunWait, powershell.exe -Command $secpasswd = ConvertTo-SecureString 'pass_winpe' -AsPlainText -Force;$mycreds = New-Object System.Management.Automation.PSCredential('%user_winpe%'`, $secpasswd);New-PSDrive -Name 'winpe' -PSProvider 'FileSystem' -Root %patchWinpe% -credential $mycred;Copy-Item winpe:\sources\boot.wim %pathToBootWim% -verbose -Recurse
+			MsgBox, 64, Done!, WinPE is updated.
+		}
+	}
+} else {
+	MsgBox, 4144, Select, Select ANY disk
+	return
+}
+GuiControl,Enable, CreateWinpeButton
+GuiControl,Enable, UpdateWinpeButton
+GuiControl,Enable, CloseButton
 return
 
 ButtonClose:
