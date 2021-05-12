@@ -1,4 +1,3 @@
-;Version 0.1.0
 #SingleInstance, force
 ;Get first free letter drive
 GetFirstFreeLetter()
@@ -49,7 +48,7 @@ global UpdateWinpeButton
 global CloseButton
 global version
 ;Variables==============================
-version = Version 0.0.1.0
+version = Version 1.0.0.0
 ;Credentials for winpeupdate
 user_winpe = images
 pass_winpe := 123edc!@#EDC
