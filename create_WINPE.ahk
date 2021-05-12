@@ -1,3 +1,4 @@
+;Version 0.1.0
 #SingleInstance, force
 ;Get first free letter drive
 GetFirstFreeLetter()
@@ -11,11 +12,12 @@ GetFirstFreeLetter()
 MenuFormat(listdisks)
 {
 	Gui, CreateWINPE:Add, ListBox, x15 y25 w535 h186 vListaDyskow, %listdisks%
-	Gui, CreateWINPE:Add, Button, x15 y220 w115 h50 gCreateWinpe vCreateWinpeButton, Create WINPE
-	Gui, CreateWINPE:Add, Button, x152 y220 w115 h50 gUpdateWinpe vUpdateWinpeButton, Update WINPE
+	Gui, CreateWINPE:Add, Button, x15 y220 w115 h45 gCreateWinpe vCreateWinpeButton, Create WINPE
+	Gui, CreateWINPE:Add, Button, x152 y220 w115 h45 gUpdateWinpe vUpdateWinpeButton, Update WINPE
 	;Gui, CreateWINPE:Add, Button, x292 y220 w115 h50 , Copy Images
+    Gui, CreateWINPE:Add, Text, x16 y270 w89 h15 +0x200, %version%
 	Gui, CreateWINPE:Add, Button, x435 y220 w115 h50 gButtonClose vCloseButton, Close
-	Gui, CreateWINPE:Show, w565 h283, WINPE Creator
+	Gui, CreateWINPE:Show, w565 h290, WINPE Creator
 	return
 }
 
@@ -45,7 +47,9 @@ global ListaDyskow
 global CreateWinpeButton
 global UpdateWinpeButton
 global CloseButton
+global version
 ;Variables==============================
+version = Version 0.0.1.0
 ;Credentials for winpeupdate
 user_winpe = images
 pass_winpe := 123edc!@#EDC
