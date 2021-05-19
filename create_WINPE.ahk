@@ -54,7 +54,7 @@ user_winpe = images
 pass_winpe := 123edc!@#EDC
 
 ;Path for copy winpe
-patchWinpe = \\pcimages\winpe\media
+patchWinpe = \\pchw\winpe\media
 
 ;Take disk data from local PC
 diskShow =
