@@ -3,11 +3,54 @@ SendMode Input
 SetWorkingDir, %A_ScriptDir%
 
 ;=====================Functions=====================
+
+;Reading output from command
+StdOutToVar(cmd) {
+	DllCall("CreatePipe", "PtrP", hReadPipe, "PtrP", hWritePipe, "Ptr", 0, "UInt", 0)
+	DllCall("SetHandleInformation", "Ptr", hWritePipe, "UInt", 1, "UInt", 1)
+
+	VarSetCapacity(PROCESS_INFORMATION, (A_PtrSize == 4 ? 16 : 24), 0)    ; http://goo.gl/dymEhJ
+	cbSize := VarSetCapacity(STARTUPINFO, (A_PtrSize == 4 ? 68 : 104), 0) ; http://goo.gl/QiHqq9
+	NumPut(cbSize, STARTUPINFO, 0, "UInt")                                ; cbSize
+	NumPut(0x100, STARTUPINFO, (A_PtrSize == 4 ? 44 : 60), "UInt")        ; dwFlags
+	NumPut(hWritePipe, STARTUPINFO, (A_PtrSize == 4 ? 60 : 88), "Ptr")    ; hStdOutput
+	NumPut(hWritePipe, STARTUPINFO, (A_PtrSize == 4 ? 64 : 96), "Ptr")    ; hStdError
+	
+	if !DllCall(
+	(Join Q C
+		"CreateProcess",             ; http://goo.gl/9y0gw
+		"Ptr",  0,                   ; lpApplicationName
+		"Ptr",  &cmd,                ; lpCommandLine
+		"Ptr",  0,                   ; lpProcessAttributes
+		"Ptr",  0,                   ; lpThreadAttributes
+		"UInt", true,                ; bInheritHandles
+		"UInt", 0x08000000,          ; dwCreationFlags
+		"Ptr",  0,                   ; lpEnvironment
+		"Ptr",  0,                   ; lpCurrentDirectory
+		"Ptr",  &STARTUPINFO,        ; lpStartupInfo
+		"Ptr",  &PROCESS_INFORMATION ; lpProcessInformation
+	)) {
+		DllCall("CloseHandle", "Ptr", hWritePipe)
+		DllCall("CloseHandle", "Ptr", hReadPipe)
+		return ""
+	}
+
+	DllCall("CloseHandle", "Ptr", hWritePipe)
+	VarSetCapacity(buffer, 4096, 0)
+	while DllCall("ReadFile", "Ptr", hReadPipe, "Ptr", &buffer, "UInt", 4096, "UIntP", dwRead, "Ptr", 0)
+		sOutput .= StrGet(&buffer, dwRead, "CP0")
+
+	DllCall("CloseHandle", "Ptr", NumGet(PROCESS_INFORMATION, 0))         ; hProcess
+	DllCall("CloseHandle", "Ptr", NumGet(PROCESS_INFORMATION, A_PtrSize)) ; hThread
+	DllCall("CloseHandle", "Ptr", hReadPipe)
+	return sOutput
+}
+
 ;Listing disks
 listDisk()
 {
     diskShow =
-    diskList := ComObjCreate("WScript.Shell").Exec("powershell -WindowStyle Minimized Get-Disk | Format-List").StdOut.ReadAll()
+    diskList := StdOutToVar("powershell Get-Disk | Format-List")
     StringReplace, diskList, diskList, `n, , All
     pos = 1
     While pos := RegExMatch(diskList,"UniqueId.*?IsBoot",disk, pos+StrLen(disk))
@@ -79,7 +122,7 @@ DisplayMainWindow()
 ;Get first free letter drive
 GetFirstFreeLetter()
 {
-	freeDiskLetter := ComObjCreate("WScript.Shell").Exec("powershell -WindowStyle Minimized ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first 1").StdOut.ReadAll()
+    freeDiskLetter := StdOutToVar("powershell ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first 1")
 	freeDiskLetter := RegExReplace(freeDiskLetter, "\r\n", "")
 	freeDiskLetter := RegExReplace(freeDiskLetter, ":", "")
 	return freeDiskLetter
@@ -88,8 +131,23 @@ GetFirstFreeLetter()
 ;Format disk
 FormatDisk(diskId)
 {
-    RunWait, powershell.exe -Command "& {Get-Disk %diskId% | Clear-Disk -RemoveData -Confirm:$false;}"
-    readOut := ComObjCreate("WScript.Shell").Exec("powershell -WindowStyle Minimized Get-Disk | Where-Object Number -Eq %diskId% | Initialize-Disk -PassThru | New-Partition -AssignDriveLetter -UseMaximumSize | Format-Volume").StdOut.ReadAll()
+    GuiControl, Main:, diskList, |...Clearing disk ID: %diskId%...
+    Sleep, 100
+    clearInfo := StdOutToVar("powershell Get-Disk " diskId " | Clear-Disk -RemoveData -Confirm:$false")
+    GuiControl, Main:, diskList, |...Formating disk ID: %diskId%...
+    Sleep, 100
+    formatInfo := StdOutToVar("powershell Get-Disk | Where-Object Number -Eq " diskId " | Initialize-Disk -PassThru | New-Partition -AssignDriveLetter -UseMaximumSize | Format-Volume")
+}
+
+;Check if disk in list is selected
+CheckIfDiskSelected()
+{
+    GuiControlGet, diskInfo,,diskList
+    If (diskInfo="")
+    {
+        MsgBox, 4144, Info, Select any disk
+        return 0
+    }
 }
 
 ;=====================Script START=====================
@@ -122,14 +180,14 @@ return
 ;Load images on startup app or refresh on demand
 ButtonRefreshDisks:
 GuiControl, Main:, diskList, |...Wait please...
-Sleep, 100 ;Only for see text wait please
+Sleep, 100 ;Only for see above
 listDisk()
 return
 
 ;Refresh list of images on demand
 ButtonRefreshImages:
 GuiControl, Main:, imagesList, |...Wait please...
-Sleep, 100 ;Only for see text wait please
+Sleep, 100 ;Only for see text above
 loadingImages(defLocLett)
 return
 
@@ -140,6 +198,9 @@ return
 
 ;Format selected disk
 FormatDisk:
+checkSelectedDisk := CheckIfDiskSelected()
+If (checkSelectedDisk = 0)
+    return
 MsgBox, 4148, Warning, Disk will be formated. Are you sure?
 IfMsgBox No
 {
@@ -148,6 +209,7 @@ IfMsgBox No
     GuiControlGet, diskInfo,,diskList
     RegExMatch(diskInfo,"[0-9]{1}",diskId)
     FormatDisk(diskId)
+    listDisk()
 }
 return
 
