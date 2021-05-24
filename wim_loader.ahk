@@ -91,6 +91,7 @@ loadingImages(pathToImages)
 		{
 	    	listImages = %listImages%%element%|
 		}
+        listImages = %listImages%|
 		GuiControl, Main:, imagesList, %listImages%
 	}
 
