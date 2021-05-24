@@ -2,6 +2,10 @@
 SendMode Input
 SetWorkingDir, %A_ScriptDir%
 
+;=====================Timers=====================
+;Timer for buttons on/off
+SetTimer, ButtonsControl, 300
+
 ;=====================Functions=====================
 
 ;Reading output from command
@@ -105,11 +109,11 @@ DisplayMainWindow()
     Gui Main:Font, s9, Segoe UI
     Gui Main:Add, ListBox, x32 y16 w504 h147 vdiskList, ...Loading list of disk...
     Gui Main:Add, ListBox, x32 y208 w503 h225 vimagesList, ...Loading list of images...
-    Gui Main:Add, Button, x32 y464 w80 h23 gFormatDisk, Format Disk
-    Gui Main:Add, Button, x120 y464 w80 h23 gButtonInstallImage, Install image
+    Gui Main:Add, Button, x32 y160 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
+    Gui Main:Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
     Gui Main:Add, Button, x456 y160 w80 h23 gButtonRefreshDisks, Refresh Disks
     Gui Main:Add, Text, x25 y497 w200 h23 +0x200, Version %version% - Copyright Miasik Jakub
-    Gui Main:Add, Text, x33 y425 w250 h22 +0x200 vCurrImagePathText
+    Gui Main:Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
     Gui Main:Font
     Gui Main:Font, s8
     Gui Main:Add, Button, x456 y432 w80 h23 gButtonRefreshImages, Refresh Images
@@ -150,6 +154,26 @@ CheckIfDiskSelected()
     }
 }
 
+ButtonsControl()
+{
+    GuiControlGet, diskInfoCheck, Main:, diskList
+    If (diskInfoCheck = "")
+    {
+        GuiControl Main: Disable, ButtonFormatDisk
+    } else
+    {
+        GuiControl Main: Enable, ButtonFormatDisk
+    }
+    GuiControlGet, imagesCheck, Main:, imagesList
+    If (imagesCheck = "")
+    {
+        GuiControl Main: Disable, InstallImage
+    } else
+    {
+        GuiControl Main: Enable, InstallImage
+    }
+}
+
 ;=====================Script START=====================
 ;=====================Variables=====================
 global version = "0.0.1"
@@ -158,9 +182,12 @@ global imagesList
 global ButtonRefreshDisks
 global ButtonRefreshImages
 global CurrImagePathText
+global ButtonFormatDisk
+global InstallImage
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = "123edc!@#EDC"
+
 ;Display Main Window
 DisplayMainWindow()
 
