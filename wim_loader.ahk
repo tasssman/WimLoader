@@ -124,24 +124,31 @@ DisplayMainWindow()
     Gui Main:Show, w563 h526, WIM Loader
 }
 
-;Get first free letter drive
+;Get first free letter drive without comma
 GetFirstFreeLetter()
 {
     freeDiskLetter := StdOutToVar("powershell ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first 1")
 	freeDiskLetter := RegExReplace(freeDiskLetter, "\r\n", "")
-	freeDiskLetter := RegExReplace(freeDiskLetter, ":", "")
+    freeDiskLetter := RegExReplace(freeDiskLetter, ":", "")
 	return freeDiskLetter
+}
+
+;Letters with comma in array
+GetFreeLetters(amount)
+{
+    freeDiskLetters := StdOutToVar("powershell (ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first " amount ") -join ';' ")
+	freeDiskLetters := RegExReplace(freeDiskLetters, "\r\n", "")
+    freeDiskLetters := RegExReplace(freeDiskLetters, ":", "")
+	freeDiskLetters := StrSplit(freeDiskLetters, ";")
+	return freeDiskLetters
 }
 
 ;Format disk
 FormatDisk(diskId)
 {
-    GuiControl, Main:, diskList, |...Clearing disk ID: %diskId%...
-    Sleep, 100
-    clearInfo := StdOutToVar("powershell Get-Disk " diskId " | Clear-Disk -RemoveData -Confirm:$false")
     GuiControl, Main:, diskList, |...Formating disk ID: %diskId%...
     Sleep, 100
-    formatInfo := StdOutToVar("powershell Get-Disk | Where-Object Number -Eq " diskId " | Initialize-Disk -PassThru | New-Partition -AssignDriveLetter -UseMaximumSize | Format-Volume")
+    clearInfo := StdOutToVar("powershell Get-Disk " diskId " | Clear-Disk -RemoveData -Confirm:$false; Get-Disk " diskId " | Initialize-Disk | New-Partition -AssignDriveLetter -UseMaximumSize | Format-Volume")
 }
 
 ;Check if disk in list is selected
@@ -175,6 +182,29 @@ ButtonsControl()
     }
 }
 
+ProgressGui(textStatus)
+{
+	Gui, Progress:Add, Progress, w200 h20 -Smooth vProgressBar
+	Gui, Progress:Add,Text,vStatus w200 h20, %textStatus%
+	Gui, Progress:Show, AutoSize, Progress
+	Gui, Progress:-Caption
+	WinSet, AlwaysOnTop, , Progress,
+	Sleep, 100
+	Return
+}
+
+ProgressGuiAddStep(setProgress, changeText)
+{
+	Loading:
+    GuiControl, Progress:, ProgressBar, %setProgress%
+	if (changeText != "")
+	{
+		GuiControl, Progress:, Status, %changeText%
+	}
+	Sleep, 100
+	return
+}
+
 ;=====================Script START=====================
 ;=====================Variables=====================
 global version = "0.0.1"
@@ -188,6 +218,23 @@ global InstallImage
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = "123edc!@#EDC"
+uefi_partitions =
+(
+    select disk disk_number
+    clean
+    convert gpt
+    rem == 1. System partition =========================
+    create partition efi size=100
+    format quick fs=fat32 label="System"
+    assign letter="first_letter"
+    rem == 2. Microsoft Reserved (MSR) partition =======
+    create partition msr size=16
+    rem == 3. Windows partition ========================
+    create partition primary 
+    format quick fs=ntfs label="Windows"
+    assign letter="second_letter"
+    exit
+)
 
 ;Display Main Window
 DisplayMainWindow()
@@ -221,7 +268,23 @@ return
 
 ButtonInstallImage:
 GuiControlGet, images,, imagesList
-MsgBox  % images
+Sleep, 100
+GuiControlGet, diskInstall,,diskList
+Sleep, 100
+letters := GetFreeLetters(2)
+RegExMatch(diskInstall,"[0-9]{1}",diskInstall)
+uefiPartiToFile := StrReplace(uefi_partitions, "disk_number", %diskInstall%)
+uefiPartiToFile := StrReplace(uefiPartiToFile, "first_letter", letters[1])
+systemLetter :=  letters[1]
+uefiPartiToFile := StrReplace(uefiPartiToFile, "second_letter", letters[2])
+windowsLetter :=  letters[2]
+FileDelete, x:\uefi_format.txt
+FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
+RunWait, diskpart /s x:\uefi_format.txt
+RunWait, dism /apply-image /imagefile:%images% /index:1 /applydir:%windowsLetter%:\,,Max
+RunWait, %windowsLetter%:\Windows\System32\bcdboot %windowsLetter%:\Windows /s %systemLetter%:
+MsgBox, 64, Reset, Will be Reset after OK is pressed or in 5 sec, 5
+Run, wpeutil Reboot
 return
 
 ;Format selected disk
