@@ -188,7 +188,7 @@ ProgressGui(textStatus)
 	Gui, Progress:Add,Text,vStatus w200 h20, %textStatus%
 	Gui, Progress:Show, AutoSize, Progress
 	Gui, Progress:-Caption
-	WinSet, AlwaysOnTop, , Progress,
+	WinSet, AlwaysOnTop, , Progress
 	Sleep, 100
 	Return
 }
@@ -202,6 +202,7 @@ ProgressGuiAddStep(setProgress, changeText)
 		GuiControl, Progress:, Status, %changeText%
 	}
 	Sleep, 100
+    WinSet, AlwaysOnTop, , Progress
 	return
 }
 
@@ -215,6 +216,8 @@ global ButtonRefreshImages
 global CurrImagePathText
 global ButtonFormatDisk
 global InstallImage
+global ProgressBar
+global Status
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = "123edc!@#EDC"
@@ -267,6 +270,7 @@ loadingImages(defLocLett)
 return
 
 ButtonInstallImage:
+ProgressGui("Instalation starting...")
 GuiControlGet, images,, imagesList
 Sleep, 100
 GuiControlGet, diskInstall,,diskList
@@ -274,15 +278,19 @@ Sleep, 100
 letters := GetFreeLetters(2)
 RegExMatch(diskInstall,"[0-9]{1}",diskInstall)
 uefiPartiToFile := StrReplace(uefi_partitions, "disk_number", %diskInstall%)
+ProgressGuiAddStep("25", "Formating partitions...")
 uefiPartiToFile := StrReplace(uefiPartiToFile, "first_letter", letters[1])
 systemLetter :=  letters[1]
 uefiPartiToFile := StrReplace(uefiPartiToFile, "second_letter", letters[2])
 windowsLetter :=  letters[2]
 FileDelete, x:\uefi_format.txt
 FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
-RunWait, diskpart /s x:\uefi_format.txt
+RunWait, diskpart /s x:\uefi_format.txt,,Min
+ProgressGuiAddStep("50", "Aplying image...")
 RunWait, dism /apply-image /imagefile:%images% /index:1 /applydir:%windowsLetter%:\,,Max
+ProgressGuiAddStep("90", "Setting bcdboot...")
 RunWait, %windowsLetter%:\Windows\System32\bcdboot %windowsLetter%:\Windows /s %systemLetter%:
+Gui, Progress: Destroy
 MsgBox, 64, Reset, Will be Reset after OK is pressed or in 5 sec, 5
 Run, wpeutil Reboot
 return
