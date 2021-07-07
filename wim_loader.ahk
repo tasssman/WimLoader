@@ -257,9 +257,11 @@ return
 
 ;Load images on startup app or refresh on demand
 ButtonRefreshDisks:
+GuiControl Main: Disable, ButtonFormatDisk
 GuiControl, Main:, diskList, |...Wait please...
 Sleep, 100 ;Only for see above
 listDisk()
+GuiControl Main: Enable, ButtonFormatDisk
 return
 
 ;Refresh list of images on demand
@@ -292,7 +294,7 @@ ProgressGuiAddStep("90", "Setting bcdboot...")
 RunWait, %windowsLetter%:\Windows\System32\bcdboot %windowsLetter%:\Windows /s %systemLetter%:
 Gui, Progress: Destroy
 MsgBox, 64, Reset, Will be Reset after OK is pressed or in 5 sec, 5
-Run, wpeutil Reboot
+Run, wpeutil Reboot,,Min
 return
 
 ;Format selected disk
