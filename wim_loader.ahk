@@ -132,7 +132,7 @@ DisplayMainWindow()
     Gui Main:Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
     Gui Main:Add, Button, x456 y160 w80 h23 gButtonRefreshDisks, Refresh Disks
     Gui Main:Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
-    Gui Main:Add, Text, x25 y510 w200 h23 +0x200, Version %version% - Copyright Miasik Jakub
+    Gui Main:Add, Text, x25 y510 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
     Gui Main:Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
     Gui Main:Font
     Gui Main:Font, s8
@@ -316,7 +316,7 @@ ProgressGuiAddStep(setProgress, changeText)
 
 ;=====================Script START=====================
 ;=====================Variables=====================
-global version = "0.1.1"
+global version = "0.12.1-beta1"
 global diskList
 global imagesList
 global ButtonRefreshDisks
