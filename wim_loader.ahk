@@ -100,6 +100,24 @@ loadingImages(pathToImages)
 ;Load from USB where WINPE images
 loadManually()
 {
+    FileSelectFile, selectedWim, 3, , Load wim manually, Windows Image (*.wim)
+    if (selectedWim = "")
+    {
+        MsgBox, The user didn't select anything.
+    }
+    else
+    {
+        GuiControlGet, Mode
+        diskInstall := InstallDiskNumber()
+        if Mode = UEFI Format
+        {
+            lettersDisks := UEFIFormat(diskInstall)
+        } else if Mode = LEGACY Format
+        {
+            lettersDisks := LEGACYFormat(diskInstall)
+        }
+        InstallImage(selectedWim, lettersDisks)
+    }
     return
 }
 
@@ -113,7 +131,8 @@ DisplayMainWindow()
     Gui Main:Add, Button, x32 y160 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
     Gui Main:Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
     Gui Main:Add, Button, x456 y160 w80 h23 gButtonRefreshDisks, Refresh Disks
-    Gui Main:Add, Text, x25 y497 w200 h23 +0x200, Version %version% - Copyright Miasik Jakub
+    Gui Main:Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
+    Gui Main:Add, Text, x25 y510 w200 h23 +0x200, Version %version% - Copyright Miasik Jakub
     Gui Main:Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
     Gui Main:Font
     Gui Main:Font, s8
@@ -121,7 +140,7 @@ DisplayMainWindow()
     Gui Main:Add, Button, x456 y456 w80 h23 gButtonLoadManually, Load manually
     Gui Main:Font
     Gui Main:Font, s9, Segoe UI
-    Gui Main:Show, w563 h526, WIM Loader
+    Gui Main:Show, w563 h550, WIM Loader
 }
 
 ;Get first free letter drive without comma
@@ -182,6 +201,95 @@ ButtonsControl()
     }
 }
 
+InstallImage(imageFile, disksLetters)
+{
+    windowsLetter := disksLetters["winLetter"]
+    systemLetter := disksLetters["sysLetter"]
+    RunWait, dism /apply-image /imagefile:%imageFile% /index:1 /applydir:%windowsLetter%:\ /NoRpFix,,Max
+    RunWait, %windowsLetter%:\Windows\System32\bcdboot %windowsLetter%:\Windows /s %systemLetter%:
+    Gui, Progress: Destroy
+    MsgBox, 64, Reset, Will be Reset after OK is pressed or in 5 sec, 5
+    Run, wpeutil Reboot,,Min
+
+}
+
+InstallDiskNumber()
+{
+    GuiControlGet, diskInstallID,,diskList
+    RegExMatch(diskInstallID,"[0-9]{1}",diskInstallID)
+    return diskInstallID
+}
+
+UEFIFormat(diskIdToFormat)
+{
+    ProgressGui("UEFI Formating...")
+    uefi_partitions =
+    (
+        select disk disk_number
+        clean
+        convert gpt
+        rem == 1. System partition =========================
+        create partition efi size=100
+        format quick fs=fat32 label="System"
+        assign letter="first_letter"
+        rem == 2. Microsoft Reserved (MSR) partition =======
+        create partition msr size=16
+        rem == 3. Windows partition ========================
+        create partition primary 
+        format quick fs=ntfs label="Windows"
+        assign letter="second_letter"
+        exit
+    )
+    uefiPartiToFile := StrReplace(uefi_partitions, "disk_number", diskIdToFormat)
+    letters := GetFreeLetters(2)
+    uefiPartiToFile := StrReplace(uefiPartiToFile, "first_letter", letters[1])
+    systemLetter :=  letters[1]
+    uefiPartiToFile := StrReplace(uefiPartiToFile, "second_letter", letters[2])
+    windowsLetter :=  letters[2]
+    FileDelete, x:\uefi_format.txt
+    FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
+    ProgressGuiAddStep("50", "Diskpart working...")
+    RunWait, diskpart /s x:\uefi_format.txt,,Min
+    formatLetters := {sysLetter:systemLetter, winLetter:windowsLetter}
+    Gui, Progress: Destroy
+    return formatLetters
+}
+
+LEGACYFormat(diskIdToFormat)
+{
+    ProgressGui("LEGACY Formating...")
+    legacy_partitions =
+    (
+        select disk disk_number
+        clean
+        rem == 1. System partition =========================
+        create partition efi size=100
+        format quick fs=fat32 label="System"
+        assign letter="first_letter"
+        rem == 2. Microsoft Reserved (MSR) partition =======
+        create partition msr size=16
+        rem == 3. Windows partition ========================
+        create partition primary 
+        format quick fs=ntfs label="Windows"
+        assign letter="second_letter"
+        exit
+    )
+    uefiPartiToFile := StrReplace(uefi_partitions, "disk_number", diskIdToFormat)
+    letters := GetFreeLetters(2)
+    uefiPartiToFile := StrReplace(uefiPartiToFile, "first_letter", letters[1])
+    systemLetter :=  letters[1]
+    uefiPartiToFile := StrReplace(uefiPartiToFile, "second_letter", letters[2])
+    windowsLetter :=  letters[2]
+    FileDelete, x:\uefi_format.txt
+    FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
+    ProgressGuiAddStep("50", "Diskpart working...")
+    RunWait, diskpart /s x:\uefi_format.txt,,Min
+    formatLetters := {sysLetter:sysytemLetter, winLetter:windowsLetter}
+    Gui, Progress: Destroy
+    return formatLetters
+}
+
+
 ProgressGui(textStatus)
 {
 	Gui, Progress:Add, Progress, w200 h20 -Smooth vProgressBar
@@ -208,7 +316,7 @@ ProgressGuiAddStep(setProgress, changeText)
 
 ;=====================Script START=====================
 ;=====================Variables=====================
-global version = "0.0.1"
+global version = "0.1.1"
 global diskList
 global imagesList
 global ButtonRefreshDisks
@@ -218,26 +326,10 @@ global ButtonFormatDisk
 global InstallImage
 global ProgressBar
 global Status
+global Mode
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = "123edc!@#EDC"
-uefi_partitions =
-(
-    select disk disk_number
-    clean
-    convert gpt
-    rem == 1. System partition =========================
-    create partition efi size=100
-    format quick fs=fat32 label="System"
-    assign letter="first_letter"
-    rem == 2. Microsoft Reserved (MSR) partition =======
-    create partition msr size=16
-    rem == 3. Windows partition ========================
-    create partition primary 
-    format quick fs=ntfs label="Windows"
-    assign letter="second_letter"
-    exit
-)
 
 ;Display Main Window
 DisplayMainWindow()
@@ -272,29 +364,17 @@ loadingImages(defLocLett)
 return
 
 ButtonInstallImage:
-ProgressGui("Instalation starting...")
-GuiControlGet, images,, imagesList
-Sleep, 100
-GuiControlGet, diskInstall,,diskList
-Sleep, 100
-letters := GetFreeLetters(2)
-RegExMatch(diskInstall,"[0-9]{1}",diskInstall)
-uefiPartiToFile := StrReplace(uefi_partitions, "disk_number", %diskInstall%)
-ProgressGuiAddStep("25", "Formating partitions...")
-uefiPartiToFile := StrReplace(uefiPartiToFile, "first_letter", letters[1])
-systemLetter :=  letters[1]
-uefiPartiToFile := StrReplace(uefiPartiToFile, "second_letter", letters[2])
-windowsLetter :=  letters[2]
-FileDelete, x:\uefi_format.txt
-FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
-RunWait, diskpart /s x:\uefi_format.txt,,Min
-ProgressGuiAddStep("50", "Aplying image...")
-RunWait, dism /apply-image /imagefile:%images% /index:1 /applydir:%windowsLetter%:\,,Max
-ProgressGuiAddStep("90", "Setting bcdboot...")
-RunWait, %windowsLetter%:\Windows\System32\bcdboot %windowsLetter%:\Windows /s %systemLetter%:
-Gui, Progress: Destroy
-MsgBox, 64, Reset, Will be Reset after OK is pressed or in 5 sec, 5
-Run, wpeutil Reboot,,Min
+GuiControlGet, Mode
+diskInstall := InstallDiskNumber()
+if Mode = UEFI Format
+{
+    lettersDisks := UEFIFormat(diskInstall)
+} else if Mode = LEGACY Format
+{
+    lettersDisks := LEGACYFormat(diskInstall)
+}
+GuiControlGet, imageToInstall,, imagesList ;global variable
+InstallImage(imageToInstall, lettersDisks)
 return
 
 ;Format selected disk
