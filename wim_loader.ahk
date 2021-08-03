@@ -411,7 +411,8 @@ loadManually()
 return
 
 ButtonUpdateApp:
-
+RunWait, net use %defLocLett%: /DELETE,, Min
+Run, wimautoupdate.exe
 MainGuiEscape:
 MainGuiClose:
     ;Delete letter od default location of defLocLett variable
