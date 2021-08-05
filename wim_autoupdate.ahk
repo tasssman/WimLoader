@@ -113,7 +113,23 @@ Loop, Parse, disk, `,
 	{
 		dirForMountWim := diskLetter . ":\mount"
 		FileCreateDir, %dirForMountWim%
+		ProgressGuiAddStep("60", "Mounting WIM ...")
 		mount := StdOutToVar("dism /Mount-image /imagefile:" pathToBootWim " /Index:1 /MountDir:" dirForMountWim " ")
-		MsgBox % mount
+		destMountCopy := dirForMountWim . "\Windows\system32"
+		ProgressGuiAddStep("80", "Copying files ...")
+		copyToMountLoc := StdOutToVar("xcopy " mountLetter ":\WimLoader.exe " destMountCopy " /y")
+		copyToXLoc := StdOutToVar("xcopy " mountLetter ":\WimLoader.exe x:\windows\system32 /y")
+		ProgressGuiAddStep("80", "Dismount in progress ...")
+		dismount := StdOutToVar("dism /Unmount-image /MountDir:" dirForMountWim " /commit")
+		ProgressGuiAddStep("100", "Exiting ...")
+		Sleep, 1000
+		Goto, Exiting
 	}
 }
+
+Exiting:
+Gui, Progress: Destroy
+RunWait, net use %mountLetter%: /DELETE /Y
+Sleep, 2000
+Run, WimLoader.exe
+ExitApp
