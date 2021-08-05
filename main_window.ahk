@@ -14,7 +14,8 @@ Gui Add, Button, x456 y160 w80 h23 +Default   , Refresh Disks
 Gui Add, Button, x456 y432 w80 h23 +Default   , Refresh Images
 Gui, Add, Radio, x32 y459 w70 h20 Checked vMode, UEFI
 Gui, Add, Radio, x32 y+3 w70 h20, Legacy
-Gui Add, Text, x120 y432 w153 h22 +0x200 , Text
+Gui Add, Text, x25 y510 w250 h23 +0x200 , Text
+Gui Add, Button, x456 y520 w100 h25, Update App!
 Gui Add, Button, x456 y456 w80 h23 +Default, Load manually
 
 Gui Show, w563 h550, WIM Loader

@@ -316,7 +316,7 @@ ProgressGuiAddStep(setProgress, changeText)
 
 ;=====================Script START=====================
 ;=====================Variables=====================
-global version = "0.12.1-beta1"
+global version = "0.12.0.0"
 global diskList
 global imagesList
 global ButtonRefreshDisks
@@ -330,6 +330,7 @@ global Mode
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = "123edc!@#EDC"
+updateLocFile = \sources\WimLoader.exe
 
 ;Display Main Window
 DisplayMainWindow()
@@ -345,6 +346,16 @@ RunWait, net use %defLocLett%: %defaLocImages% /user:%defaLocImagesUser% %defaLo
 
 ;Load wims to main window and display them
 loadingImages(defLocLett)
+
+;Check for updates
+FileGetVersion, wimLoaderVer , %defLocLett%:%updateLocFile%
+if (wimLoaderVer == version)
+{
+    return
+} Else
+{
+    Gui Main:Add, Button, x456 y520 w100 h25 gButtonUpdateApp, Update App!
+}
 return
 
 ;Load images on startup app or refresh on demand
@@ -399,6 +410,9 @@ ButtonLoadManually:
 loadManually()
 return
 
+ButtonUpdateApp:
+RunWait, net use %defLocLett%: /DELETE,, Min
+Run, wimautoupdate.exe
 MainGuiEscape:
 MainGuiClose:
     ;Delete letter od default location of defLocLett variable
