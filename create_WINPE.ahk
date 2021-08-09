@@ -1,4 +1,5 @@
 #SingleInstance, force
+SetWorkingDir, %A_ScriptDir%
 ;Functions
 ;Reading output from command
 StdOutToVar(cmd) {
@@ -42,36 +43,20 @@ StdOutToVar(cmd) {
 	return sOutput
 }
 
-
-;Get first free letter drive
-GetFirstFreeLetter()
+listDisk()
 {
-	freeDiskLetter := StdOutToVar("powershell -windowstyle hidden ls function:[h-z]: -n | ?{ !(test-path $_) } | select -first 1")
-	freeDiskLetter := RegExReplace(freeDiskLetter, "\r\n", "")
-	freeDiskLetter := RegExReplace(freeDiskLetter, ":", "")
-	return freeDiskLetter
-}
-
-MenuFormat(listdisks)
-{
-	Gui, CreateWINPE: +AlwaysOnTop
-	Gui, CreateWINPE:Add, ListBox, x15 y25 w535 h186 vListaDyskow, %listdisks%
-	Gui, CreateWINPE:Add, Button, x15 y220 w115 h45 gCreateWinpe vCreateWinpeButton, Create WINPE
-	Gui, CreateWINPE:Add, Button, x152 y220 w115 h45 gUpdateWinpe vUpdateWinpeButton, Update WINPE
-	;Gui, CreateWINPE:Add, Button, x292 y220 w115 h50 , Copy Images
-    Gui, CreateWINPE:Add, Text, x16 y270 w89 h15 +0x200, %version%
-	Gui, CreateWINPE:Add, Button, x435 y220 w115 h50 gButtonClose vCloseButton, Close
-	Gui, CreateWINPE:Show, w565 h290, WINPE Creator
-	return
-}
-
-WaitWindow(text)
-{
-	Gui, Wait: +AlwaysOnTop +Disabled -SysMenu +Owner  ; +Owner avoids a taskbar button.
-	Gui, Wait:Font, s20
-	Gui, Wait:Add, Text,w200 Center, %text%
-	Gui, Wait:-Caption
-	Gui, Wait:Show, NoActivate
+    diskList := StdOutToVar("powershell Get-Disk | Where-Object {$_.Bustype -Eq 'USB'} | Format-List")
+    StringReplace, diskList, diskList, `n, , All
+    pos = 1
+    While pos := RegExMatch(diskList,"UniqueId.*?IsBoot",disk, pos+StrLen(disk))
+    {
+        RegExMatch(disk,"O)(Number.*?: )(.*)(Path)",diskId)
+        RegExMatch(disk,"O)(Model.*?: )(.*)(Serial)",model)
+        RegExMatch(disk,"O)(Size.*?: )(.*)(Allocated)",size)
+        RegExMatch(disk,"O)(PartitionStyle.*?: )(.*)(IsReadOnly)",partitionType)
+        diskShow = % diskShow "ID: "diskId[2]" == Model: "model[2]" == Size: "size[2]" == Partition Type: "partitionType[2]""
+    }
+    return diskShow
 }
 
 CheckIfpathExist(patchWinpe)
@@ -106,121 +91,64 @@ ProgressGuiAddStep(setProgress, changeText)
 	Sleep, 100
 	return
 }
-ProgressGui("Loading Disks")
-ProgressGuiAddStep("25","")
-;Start script=====================================================
+
+GetFreeLetters(amount)
+{
+    freeDiskLetters := StdOutToVar("powershell (ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first " amount ") -join ';' ")
+	freeDiskLetters := RegExReplace(freeDiskLetters, "\r\n", "")
+    freeDiskLetters := RegExReplace(freeDiskLetters, ":", "")
+	freeDiskLetters := StrSplit(freeDiskLetters, ";")
+	return freeDiskLetters
+}
+
+formatForWim(diskNumber)
+{
+	wimPartToFile := StrReplace(usbFormat, "disk_number", diskNumber)
+	letters := GetFreeLetters(2)
+	wimPartToFile := StrReplace(wimPartToFile, "first_letter", letters[1])
+	winpeLocation := letters[1]
+	wimPartToFile := StrReplace(wimPartToFile, "second_letter", letters[2])
+	FileDelete, wim_format.txt
+	FileAppend, %wimPartToFile%, wim_format.txt
+	RunWait, diskpart /s %A_ScriptDir%\wim_format.txt
+	return winpeLocation
+}
+
+;Variables==============================
+usbFormat =
+(
+	select disk disk_number
+	clean
+	create partition primary size=2048
+	active
+	format fs=FAT32 quick label="WinPE"
+	assign letter=first_letter
+	create partition primary
+	format fs=NTFS quick label="Images"
+	assign letter=second_letter
+	Exit
+)
+
 ;Globals==============================
-global patchWinpe
-global ListaDyskow
-global CreateWinpeButton
-global UpdateWinpeButton
-global CloseButton
-global version
 global ProgressBar
 global Status
-;Variables==============================
-version = Version 1.0.0.0
-;Credentials for winpeupdate
-user_winpe = images
-pass_winpe := "123edc!@#EDC"
+global usbFormat
 
-;Path for copy winpe
-patchWinpe = \\pchw\winpe\media
-
-;Take disk data from local PC
-ProgressGuiAddStep("50", "")
-diskShow =
-diskList := StdOutToVar("powershell Get-Disk | Format-List")
-StringReplace, diskList, diskList, `n, , All
-pos = 1
-While pos := RegExMatch(diskList,"UniqueId.*?IsBoot",disk, pos+StrLen(disk))
-{
-	RegExMatch(disk,"O)(Number.*?: )(.*)(Path)",diskId)
-	RegExMatch(disk,"O)(Model.*?: )(.*)(Serial)",model)
-	RegExMatch(disk,"O)(Size.*?: )(.*)(Allocated)",size)
-	RegExMatch(disk,"O)(PartitionStyle.*?: )(.*)(IsReadOnly)",partitionType)
-	diskShow = % diskShow "No: "diskId[2]" === Model: "model[2]" === Size: "size[2]" === Partition Type: "partitionType[2]"|"
-}
-ProgressGuiAddStep("100", "")
-MenuFormat(diskShow)
+;Start script=====================================================
+ProgressGui("Loading Disks...")
+ProgressGuiAddStep("25","")
+disks := listDisk()
 Gui, Progress: Destroy
-return
-
-;~ Creating pendrive
-CreateWinpe:
-GuiControl,CreateWINPE:Disable, CreateWinpeButton
-GuiControl,CreateWINPE:Disable, UpdateWinpeButton
-GuiControl,CreateWINPE:Disable, CloseButton
-Sleep, 100
-;CheckIfpathExist(patchWinpe)
-GuiControlGet, diskToFormat,,ListaDyskow
-RegExMatch(diskToFormat,"[0-9]{1}",idToFormat)
-if (idToFormat != "")
+InputBox, diskToFormat, Choose disk to format, Enter ID to format disk `n`r %disks%,,500,500
+If ErrorLevel
 {
-	ProgressGui("Clearing disk...")
-	ProgressGuiAddStep("15", "")
-	clearDisk := StdOutToVar("powershell Clear-Disk " idToFormat " -RemoveData -Confirm:$false")
-	ProgressGuiAddStep("30", "Initializing disk...")
-	InitDisk := StdOutToVar("powershell Get-Disk " idToFormat " | Initialize-Disk -PartitionStyle MBR")
-	partiWinpe := GetFirstFreeLetter()
-	ProgressGuiAddStep("50", "Formating first partition...")
-	command = New-Partition -DiskNumber %idToFormat% -Size 2048MB -IsActive -DriveLetter %partiWinpe% | Format-Volume -FileSystem FAT32 -NewFileSystemLabel WINPE
-	RunWait, powershell.exe -Command "& {%command%}"
-	partiImages := GetFirstFreeLetter()
-	ProgressGuiAddStep("75", "Formating second partition...")
-	command = New-Partition -DiskNumber %idToFormat% -UseMaximumSize -DriveLetter %partiImages% | Format-Volume -FileSystem NTFS -NewFileSystemLabel Images
-	RunWait, powershell.exe -Command "& {%command%}"
-	ProgressGuiAddStep("100", "Formating done...")
-	Gui, Progress: Destroy
-} else {
-	MsgBox, 4144, Select, Select ANY disk
-	return
+	ExitApp
 }
-;Get first free letter for pchw na mount it
-mountPchwLett := GetFirstFreeLetter()
-mountDest := StdOutToVar("net use " mountPchwLett ": " patchWinpe " /user:" user_winpe " " pass_winpe "")
-RunWait, robocopy %mountPchwLett%:\ %partiWinpe%:\ /e /bytes
-
-FileCreateDir, %partiImages%:\Images
-GuiControl,Enable, CreateWinpeButton
-GuiControl,Enable, UpdateWinpeButton
-GuiControl,Enable, CloseButton
-MsgBox, 64, Done!, WinPE is created
-return
-
-UpdateWinpe:
-GuiControl,Disable, CreateWinpeButton
-GuiControl,Disable, UpdateWinpeButton
-GuiControl,Disable, CloseButton
-CheckIfpathExist(patchWinpe)
-GuiControlGet, diskToFormat,,ListaDyskow
-RegExMatch(diskToFormat,"[0-9]{1}",idToUpdate)
-if (idToUpdate != "")
-{
-	diskLetter := ComObjCreate("WScript.Shell").Exec("powershell -windowstyle hidden Get-Disk " idtoUpdate " | Get-Partition | Select-Object DriveLetter | Format-Custom").StdOut.ReadAll()
-	pos = 1
-	While pos := RegExMatch(diskLetter,"DriveLetter.*",partitionId, pos+StrLen(partitionId))
-	{
-		RegExMatch(partitionId,"(?<= = )[A-Z]{1}",letter)
-		pathToBootWim = %letter%:\sources\boot.wim
-		if (FileExist(pathToBootWim))
-		{
-			RunWait, powershell.exe -Command $secpasswd = ConvertTo-SecureString 'pass_winpe' -AsPlainText -Force;$mycreds = New-Object System.Management.Automation.PSCredential('%user_winpe%'`, $secpasswd);New-PSDrive -Name 'winpe' -PSProvider 'FileSystem' -Root %patchWinpe% -credential $mycred;Copy-Item winpe:\sources\boot.wim %pathToBootWim% -verbose -Recurse
-			MsgBox, 64, Done!, WinPE is updated.
-		}
-	}
-} else {
-	MsgBox, 4144, Select, Select ANY disk
-	return
-}
-GuiControl,Enable, CreateWinpeButton
-GuiControl,Enable, UpdateWinpeButton
-GuiControl,Enable, CloseButton
-return
-
-ButtonClose:
-GuiEscape:
-CreateWINPEGuiClose:
-unmountPchw := StdOutToVar("net use " mountPchwLett ": /DELETE /YES")
-Gui, CreateWINPE:Destroy
+ProgressGui("Formating for winPE...")
+ProgressGuiAddStep("50","")
+sourceCopyWinPEFiles := formatForWim(diskToFormat)
+ProgressGuiAddStep("50","Copying WINPE")
+RunWait, xcopy \\pchw\winpe\media\ %sourceCopyWinPEFiles%:\ /y /e
+Gui, Progress: Destroy
+MsgBox,,, Done
 ExitApp
