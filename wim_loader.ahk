@@ -128,16 +128,16 @@ DisplayMainWindow()
     Gui Main:Font, s9, Segoe UI
     Gui Main:Add, ListBox, x32 y16 w504 h147 vdiskList, ...Loading list of disk...
     Gui Main:Add, ListBox, x32 y208 w503 h225 vimagesList, ...Loading list of images...
-    Gui Main:Add, Button, x32 y160 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
+    Gui Main:Add, Button, x32 y165 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
     Gui Main:Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
-    Gui Main:Add, Button, x456 y160 w80 h23 gButtonRefreshDisks, Refresh Disks
+    Gui Main:Add, Button, x456 y165 w80 h23 gButtonRefreshDisks, Refresh Disks
     Gui Main:Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
     Gui Main:Add, Text, x25 y510 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
     Gui Main:Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
     Gui Main:Font
     Gui Main:Font, s8
-    Gui Main:Add, Button, x456 y432 w80 h23 gButtonRefreshImages, Refresh Images
-    Gui Main:Add, Button, x456 y456 w80 h23 gButtonLoadManually, Load manually
+    Gui Main:Add, Button, x456 y432 w80 h30 gButtonRefreshImages, Refresh Images
+    Gui Main:Add, Button, x456 y465 w80 h23 gButtonLoadManually, Load manually
     Gui Main:Font
     Gui Main:Font, s9, Segoe UI
     Gui Main:Show, w563 h550, WIM Loader
@@ -316,7 +316,7 @@ ProgressGuiAddStep(setProgress, changeText)
 
 ;=====================Script START=====================
 ;=====================Variables=====================
-global version = "0.13.0.0"
+global version = "0.13.0.1"
 global diskList
 global imagesList
 global ButtonRefreshDisks

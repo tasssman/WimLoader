@@ -8,16 +8,17 @@ Gui Font, s9, Segoe UI
 Gui Add, ListBox, x32 y16 w504 h147, DiskList
 Gui Add, ListBox, x32 y208 w503 h225, ImagesList
 Gui Add, Text, x25 y510 w83 h23 +0x200   , Version 1.0.0.0
-Gui Add, Button, x32 y160 w80 h23 +Default   , Format Disk
+Gui Add, Button, x32 y165 w80 h23, Format Disk
 Gui Add, Button, x32 y432 w80 h23 +Default   , Load image
-Gui Add, Button, x456 y160 w80 h23 +Default   , Refresh Disks
-Gui Add, Button, x456 y432 w80 h23 +Default   , Refresh Images
+Gui Add, Button, x456 y165 w80 h23, Refresh Disks
 Gui, Add, Radio, x32 y459 w70 h20 Checked vMode, UEFI
 Gui, Add, Radio, x32 y+3 w70 h20, Legacy
 Gui Add, Text, x25 y510 w250 h23 +0x200 , Text
 Gui Add, Button, x456 y520 w100 h25, Update App!
-Gui Add, Button, x456 y456 w80 h23 +Default, Load manually
-
+Gui Font, s8
+Gui Add, Button, x456 y432 w80 h30, Refresh Images
+Gui Add, Button, x456 y465 w80 h23, Load manually
+Gui Font
 Gui Show, w563 h550, WIM Loader
 Return
 
