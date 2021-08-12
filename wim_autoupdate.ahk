@@ -82,16 +82,15 @@ ProgressGuiAddStep(setProgress, changeText)
 MsgBox 0x40030, , Please DO NOT remove USB stick
 global ProgressBar
 global Status
-defaLocUpdate = "\\pchw\images\sources"
+defaLocUpdate = "\\pchw\winpe"
+defaLocSources = "\\pchw\images\sources"
 defaultUser = images
 defaultPass = "123edc!@#EDC"
 updateFileUpdate = WimLoader.exe
 disk := "c,d,e,f,g,h,i,j,k,l,m,o,p"
 
-ProgressGui("Mounting location...")
-mountLetter := GetFirstFreeLetter()
-RunWait, net use %mountLetter%: %defaLocUpdate% /user:%defaultUser% %defaultPass% /p:no,, Min
-ProgressGuiAddStep("10", "Searching for usb stick ...")
+ProgressGui("Searching for usb stick ...")
+ProgressGuiAddStep("20", "")
 Loop, Parse, disk, `,
 {
 	usbLetter := A_LoopField
@@ -101,31 +100,23 @@ Loop, Parse, disk, `,
 		Goto, Continue
 	}
 }
+;I USB drive not exist
+MsgBox 0x40010, USB not found, USB drive with WimLoader not found. Please copy manualy boot.wim from PCHW
 
 Continue:
-ProgressGuiAddStep("20", "Searching for place ...")
-Loop, Parse, disk, `,
-{
-	diskLetter := A_LoopField
-	disk = ""\"DeviceID='%diskLetter%:'\"""
-	freeSpace := StdOutToVar("powershell Get-WmiObject Win32_LogicalDisk -Filter " disk " | Foreach-Object {$_.FreeSpace/1GB}")
-	if (freeSpace > 4)
-	{
-		dirForMountWim := diskLetter . ":\mount"
-		FileCreateDir, %dirForMountWim%
-		ProgressGuiAddStep("60", "Mounting WIM ...")
-		mount := StdOutToVar("dism /Mount-image /imagefile:" pathToBootWim " /Index:1 /MountDir:" dirForMountWim " ")
-		destMountCopy := dirForMountWim . "\Windows\system32"
-		ProgressGuiAddStep("80", "Copying files ...")
-		copyToMountLoc := StdOutToVar("xcopy " mountLetter ":\WimLoader.exe " destMountCopy " /y")
-		copyToXLoc := StdOutToVar("xcopy " mountLetter ":\WimLoader.exe x:\windows\system32 /y")
-		ProgressGuiAddStep("80", "Dismount in progress ...")
-		dismount := StdOutToVar("dism /Unmount-image /MountDir:" dirForMountWim " /commit")
-		ProgressGuiAddStep("100", "Exiting ...")
-		Sleep, 1000
-		Goto, Exiting
-	}
-}
+ProgressGuiAddStep("40", "Mounting PCHW ...")
+mountLetter := GetFirstFreeLetter()
+RunWait, net use %mountLetter%: %defaLocUpdate% /user:%defaultUser% %defaultPass% /p:no,, Min
+ProgressGuiAddStep("70", "Copying boot.wim ...")
+copyToMountLoc := StdOutToVar("xcopy " mountLetter ":\media\boot.wim " usbLetter ":\sources /y")
+RunWait, net use %mountLetter%: /DELETE /Y
+mountLetter := GetFirstFreeLetter()
+RunWait, net use %mountLetter%: %defaLocSources% /user:%defaultUser% %defaultPass% /p:no,, Min
+ProgressGuiAddStep("80", "Copying boot.wim ...")
+copyToXLoc := StdOutToVar("xcopy " mountLetter ":\WimLoader.exe x:\windows\system32 /y")
+ProgressGuiAddStep("100", "Done")
+Sleep, 1000
+
 
 Exiting:
 Gui, Progress: Destroy
