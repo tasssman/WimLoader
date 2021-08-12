@@ -411,6 +411,7 @@ loadManually()
 return
 
 ButtonUpdateApp:
+copyAutoUpdate := StdOutToVar("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
 RunWait, net use %defLocLett%: /DELETE,, Min
 Run, wimautoupdate.exe
 MainGuiEscape:
