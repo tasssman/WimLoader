@@ -316,7 +316,7 @@ ProgressGuiAddStep(setProgress, changeText)
 
 ;=====================Script START=====================
 ;=====================Variables=====================
-global version = "0.13.0.1"
+global version = "0.13.0.2"
 global diskList
 global imagesList
 global ButtonRefreshDisks
