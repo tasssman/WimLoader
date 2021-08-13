@@ -10,6 +10,12 @@ SetTimer, ButtonsControl, 300
 
 ;Reading output from command
 StdOutToVar(cmd) {
+    ;Log cmd command
+    FormatTime, timeCmd,,yyyy-MM-dd_HH:mm:ss
+    CmdText = %timeCmd% - %cmd%
+    CmdText := RegExReplace(CmdText, "\r\n", " ")
+    FileAppend, `n============CMD Start==============`n%CmdText%`n, wimlog_%uniqFileName%_StdOutput_.txt
+
 	DllCall("CreatePipe", "PtrP", hReadPipe, "PtrP", hWritePipe, "Ptr", 0, "UInt", 0)
 	DllCall("SetHandleInformation", "Ptr", hWritePipe, "UInt", 1, "UInt", 1)
 
@@ -47,12 +53,27 @@ StdOutToVar(cmd) {
 	DllCall("CloseHandle", "Ptr", NumGet(PROCESS_INFORMATION, 0))         ; hProcess
 	DllCall("CloseHandle", "Ptr", NumGet(PROCESS_INFORMATION, A_PtrSize)) ; hThread
 	DllCall("CloseHandle", "Ptr", hReadPipe)
+    ;Log output
+    FormatTime, timeOutput,,yyyy-MM-dd_HH:mm:ss
+    FormatTime, timeFile,,yyyy-MM-dd
+    OutputText = %timeOutput% - %sOutput%
+    OutputText := RegExReplace(OutputText, "\r\n", " ")
+    FileAppend, %OutputText%, wimlog_%uniqFileName%_StdOutput_.txt
 	return sOutput
+}
+
+;Logger
+Log(text)
+{
+    FormatTime, timeNow,,yyyy-MM-dd_HH:mm:ss
+    textToLog = %timeNow%  %text%
+    FileAppend, %textToLog%`n, wimlog_%uniqFileName%.txt
 }
 
 ;Listing disks
 listDisk()
 {
+    Log("Loading disks")
     diskShow =
     diskList := StdOutToVar("powershell Get-Disk | Format-List")
     StringReplace, diskList, diskList, `n, , All
@@ -66,16 +87,19 @@ listDisk()
         diskShow = % diskShow "|No: "diskId[2]" == Model: "model[2]" == Size: "size[2]" == Partition Type: "partitionType[2]"|"
     }
     GuiControl, Main:, diskList, %diskShow%
+    Log(diskShow)
 }
 
 ;Listing images from PCHW
 loadingImages(pathToImages)
 {
+    Log("Loading images")
     ;Adding colon to path
     pathToImages = %pathToImages%:
 	listImages =
 	IfNotExist,%pathToImages%
 	{
+        Log("Path to images not found")
 		MsgBox, 0x40010,, Location %pathToImages%. Please select manually.
         GuiControl, Main:, imagesList, |Select images manually
 	} else
@@ -93,6 +117,7 @@ loadingImages(pathToImages)
 		}
         listImages = %listImages%|
 		GuiControl, Main:, imagesList, %listImages%
+        Log("Loaded list of images")
 	}
 
 }
@@ -100,6 +125,7 @@ loadingImages(pathToImages)
 ;Load from USB where WINPE images
 loadManually()
 {
+    Log("Start manually load image")
     FileSelectFile, selectedWim, 3, , Load wim manually, Windows Image (*.wim)
     if (selectedWim = "")
     {
@@ -109,6 +135,7 @@ loadManually()
     {
         GuiControlGet, Mode
         diskInstall := InstallDiskNumber()
+        Log("Selected disk "diskInstall)
         if Mode = UEFI Format
         {
             lettersDisks := UEFIFormat(diskInstall)
@@ -118,6 +145,7 @@ loadManually()
         }
         InstallImage(selectedWim, lettersDisks)
     }
+    Log("End manually load")
     return
 }
 
@@ -125,6 +153,7 @@ loadManually()
 ;Display Main Window
 DisplayMainWindow()
 {
+    Log("Loadinf main window")
     Gui Main:Font, s9, Segoe UI
     Gui Main:Add, ListBox, x32 y16 w504 h147 vdiskList, ...Loading list of disk...
     Gui Main:Add, ListBox, x32 y208 w503 h225 vimagesList, ...Loading list of images...
@@ -149,6 +178,7 @@ GetFirstFreeLetter()
     freeDiskLetter := StdOutToVar("powershell ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first 1")
 	freeDiskLetter := RegExReplace(freeDiskLetter, "\r\n", "")
     freeDiskLetter := RegExReplace(freeDiskLetter, ":", "")
+    Log("First free letter: "freeDiskLetter)
 	return freeDiskLetter
 }
 
@@ -159,12 +189,14 @@ GetFreeLetters(amount)
 	freeDiskLetters := RegExReplace(freeDiskLetters, "\r\n", "")
     freeDiskLetters := RegExReplace(freeDiskLetters, ":", "")
 	freeDiskLetters := StrSplit(freeDiskLetters, ";")
+    Log("Get free letters")
 	return freeDiskLetters
 }
 
 ;Format disk
 FormatDisk(diskId)
 {
+    Log("Formating disk ID: " diskId)
     GuiControl, Main:, diskList, |...Formating disk ID: %diskId%...
     Sleep, 100
     clearInfo := StdOutToVar("powershell Get-Disk " diskId " | Clear-Disk -RemoveData -Confirm:$false; Get-Disk " diskId " | Initialize-Disk | New-Partition -AssignDriveLetter -UseMaximumSize | Format-Volume")
@@ -203,12 +235,19 @@ ButtonsControl()
 
 InstallImage(imageFile, disksLetters)
 {
+    Log("Selected image file: "imageFile)
+    Log("Windows system letter: "windowsLetter)
+    Log("System letter: "systemLetter)
     windowsLetter := disksLetters["winLetter"]
     systemLetter := disksLetters["sysLetter"]
+    Log("dism apply image start")
     RunWait, dism /apply-image /imagefile:%imageFile% /index:1 /applydir:%windowsLetter%:\ /NoRpFix,,Max
+    Log("dism apply image end")
+    Log("bcdboot copy")
     RunWait, %windowsLetter%:\Windows\System32\bcdboot %windowsLetter%:\Windows /s %systemLetter%:
     Gui, Progress: Destroy
     MsgBox, 64, Reset, Will be Reset after OK is pressed or in 5 sec, 5
+    Log("Rebooting")
     Run, wpeutil Reboot,,Min
 
 }
@@ -222,6 +261,7 @@ InstallDiskNumber()
 
 UEFIFormat(diskIdToFormat)
 {
+    Log("Loaded UEFI diskpart format")
     ProgressGui("UEFI Formating...")
     uefi_partitions =
     (
@@ -257,6 +297,7 @@ UEFIFormat(diskIdToFormat)
 
 LEGACYFormat(diskIdToFormat)
 {
+    Log("Loaded LEGACY diskpart format")
     ProgressGui("LEGACY Formating...")
     legacy_partitions =
     (
@@ -313,10 +354,28 @@ ProgressGuiAddStep(setProgress, changeText)
     WinSet, AlwaysOnTop, , Progress
 	return
 }
+getServiceTagPC()
+{
+    PCTag := StdOutToVar("powershell Get-WmiObject win32_SystemEnclosure | select serialnumber | ft -HideTableHeaders")
+    PCTag := RegExReplace(PCTag, "\r\n", "")
+    PCTag := RegExReplace(PCTag, " ", "")
+    return PCtag
+}
+
+generUniqFileName()
+{
+    FormatTime, timeFile,,yyyy_MM_dd_HH_mm_ss
+    return timeFile
+}
 
 ;=====================Script START=====================
+;Generate unique name of file
+uniqFileName := generUniqFileName()
+;Get service tag
+serviceTag := getServiceTagPC()
 ;=====================Variables=====================
-global version = "0.13.0.2"
+global version = "0.13.1.0"
+Log("Script version: "version)
 global diskList
 global imagesList
 global ButtonRefreshDisks
@@ -327,11 +386,14 @@ global InstallImage
 global ProgressBar
 global Status
 global Mode
+global serviceTag
+global uniqFileName
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = "123edc!@#EDC"
 updateLocFile = \sources\WimLoader.exe
 
+Log("=========================Script started for " serviceTag "=====================================")
 ;Display Main Window
 DisplayMainWindow()
 
@@ -342,18 +404,22 @@ listDisk()
 defLocLett := GetFirstFreeLetter()
 
 ;Connect to default location and assign letter
+Log("Connecting to: "defaLocImages)
 RunWait, net use %defLocLett%: %defaLocImages% /user:%defaLocImagesUser% %defaLocImagesPass% /p:no,, Min
 
 ;Load wims to main window and display them
 loadingImages(defLocLett)
 
 ;Check for updates
+Log("Checking for update")
 FileGetVersion, wimLoaderVer , %defLocLett%:%updateLocFile%
 if (wimLoaderVer == version)
 {
+    Log("Update not found")
     return
 } Else
 {
+    Log("Update found")
     Gui Main:Add, Button, x456 y520 w100 h25 gButtonUpdateApp, Update App!
 }
 return
@@ -369,12 +435,14 @@ return
 
 ;Refresh list of images on demand
 ButtonRefreshImages:
+Log("Images refresh demand")
 GuiControl, Main:, imagesList, |...Wait please...
 Sleep, 100 ;Only for see text above
 loadingImages(defLocLett)
 return
 
 ButtonInstallImage:
+Log("Install image by user")
 GuiControlGet, Mode
 diskInstall := InstallDiskNumber()
 if Mode = UEFI Format
@@ -411,11 +479,13 @@ loadManually()
 return
 
 ButtonUpdateApp:
+Log("Update script started")
 copyAutoUpdate := StdOutToVar("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
 RunWait, net use %defLocLett%: /DELETE,, Min
 Run, wimautoupdate.exe
 MainGuiEscape:
 MainGuiClose:
+    Log("Script closed")
     ;Delete letter od default location of defLocLett variable
     RunWait, net use %defLocLett%: /DELETE,, Min
     ExitApp
