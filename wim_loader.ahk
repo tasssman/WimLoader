@@ -14,7 +14,7 @@ StdOutToVar(cmd) {
     FormatTime, timeCmd,,yyyy-MM-dd_HH:mm:ss
     CmdText = %timeCmd% - %cmd%
     CmdText := RegExReplace(CmdText, "\r\n", " ")
-    FileAppend, `n============CMD Start==============`n%CmdText%`n, wimlog_%uniqFileName%_StdOutput_.txt
+    FileAppend, `n============CMD Start==============`n%CmdText%`n, wimlog_%uniqFileName%_StdOutput.txt
 
 	DllCall("CreatePipe", "PtrP", hReadPipe, "PtrP", hWritePipe, "Ptr", 0, "UInt", 0)
 	DllCall("SetHandleInformation", "Ptr", hWritePipe, "UInt", 1, "UInt", 1)
@@ -58,7 +58,7 @@ StdOutToVar(cmd) {
     FormatTime, timeFile,,yyyy-MM-dd
     OutputText = %timeOutput% - %sOutput%
     OutputText := RegExReplace(OutputText, "\r\n", " ")
-    FileAppend, %OutputText%, wimlog_%uniqFileName%_StdOutput_.txt
+    FileAppend, %OutputText%, wimlog_%uniqFileName%_StdOutput.txt
 	return sOutput
 }
 
@@ -153,7 +153,15 @@ loadManually()
 ;Display Main Window
 DisplayMainWindow()
 {
-    Log("Loadinf main window")
+    Log("Loading main window")
+    ;Menu loading
+    Menu, Options, Add, Open WIM log, OpenWimlog
+    Menu, Options, Add, Open StdOut log, OpenStdOutlog
+    Menu, BarMenu, Add, Options, :Options
+    Menu, About, Add, Update App, UpdateApp
+    Menu, BarMenu, Add, About, :About
+    Gui Main:Menu, BarMenu
+    ;Gui loading
     Gui Main:Font, s9, Segoe UI
     Gui Main:Add, ListBox, x32 y16 w504 h147 vdiskList, ...Loading list of disk...
     Gui Main:Add, ListBox, x32 y208 w503 h225 vimagesList, ...Loading list of images...
@@ -478,7 +486,16 @@ ButtonLoadManually:
 loadManually()
 return
 
+OpenWimlog:
+Run notepad.exe wimlog_%uniqFileName%.txt
+return
+
+OpenStdOutlog:
+Run notepad.exe wimlog_%uniqFileName%_StdOutput.txt
+return
+
 ButtonUpdateApp:
+UpdateApp:
 Log("Update script started")
 copyAutoUpdate := StdOutToVar("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
 RunWait, net use %defLocLett%: /DELETE,, Min

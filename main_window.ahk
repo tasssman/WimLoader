@@ -4,6 +4,12 @@
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
+Menu, Options, Add, Open wim log, OpenWimlog
+Menu, Options, Add, Open commands log, OpenWimlog
+Menu, BarMenu, Add, Options, :Options
+Menu, About, Add, Update App, UpdateApp
+Menu, BarMenu, Add, About, :About
+Gui, Menu, BarMenu
 Gui Font, s9, Segoe UI
 Gui Add, ListBox, x32 y16 w504 h147, DiskList
 Gui Add, ListBox, x32 y208 w503 h225, ImagesList
@@ -21,6 +27,11 @@ Gui Add, Button, x456 y465 w80 h23, Load manually
 Gui Font
 Gui Show, w563 h550, WIM Loader
 Return
+
+UpdateApp:
+OpenWimlog:
+return
+
 
 GuiEscape:
 GuiClose:
