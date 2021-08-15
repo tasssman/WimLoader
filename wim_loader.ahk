@@ -428,7 +428,7 @@ if (wimLoaderVer == version)
 } Else
 {
     Log("Update found")
-    Gui Main:Add, Button, x456 y520 w100 h25 gButtonUpdateApp, Update App!
+    Gui Main:Add, Button, x440 y515 w120 h33 gButtonUpdateApp, Update App!`nto %wimLoaderVer%
 }
 return
 
