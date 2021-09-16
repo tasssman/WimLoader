@@ -75,7 +75,13 @@ listDisk()
 {
     Log("Loading disks")
     diskShow =
-    diskList := StdOutToVar("powershell Get-Disk | Format-List")
+    GuiControlGet, usbcheck,,UsbCheckbox
+    if (usbcheck = 1)
+    {
+        diskList := StdOutToVar("powershell Get-Disk | Format-List")
+    } else {
+        diskList := StdOutToVar("powershell Get-Disk | Where-Object -FilterScript {$_.Bustype -notcontains 'usb'} | Format-List")
+    }
     StringReplace, diskList, diskList, `n, , All
     pos = 1
     While pos := RegExMatch(diskList,"UniqueId.*?IsBoot",disk, pos+StrLen(disk))
@@ -165,8 +171,9 @@ DisplayMainWindow()
     Gui Main:Font, s9, Segoe UI
     Gui Main:Add, ListBox, x32 y16 w504 h147 vdiskList, ...Loading list of disk...
     Gui Main:Add, ListBox, x32 y208 w503 h225 vimagesList, ...Loading list of images...
-    Gui Main:Add, Button, x32 y165 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
+    Gui Main:Add, Button, x370 y165 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
     Gui Main:Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
+    Gui Main:Add, CheckBox, x32 y165 w120 h20 vUsbCheckbox gRunCheckUsb, Show USB drives
     Gui Main:Add, Button, x456 y165 w80 h23 gButtonRefreshDisks, Refresh Disks
     Gui Main:Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
     Gui Main:Add, Text, x25 y510 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
@@ -382,7 +389,7 @@ uniqFileName := generUniqFileName()
 ;Get service tag
 serviceTag := getServiceTagPC()
 ;=====================Variables=====================
-global version = "0.13.2.0"
+global version = "0.13.3.0"
 Log("Script version: "version)
 global diskList
 global imagesList
@@ -396,6 +403,7 @@ global Status
 global Mode
 global serviceTag
 global uniqFileName
+global UsbCheckbox
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = "123edc!@#EDC"
@@ -485,6 +493,10 @@ return
 ButtonLoadManually:
 loadManually()
 return
+
+RunCheckUsb:
+Goto, ButtonRefreshDisks
+Return
 
 OpenWimlog:
 Run notepad.exe wimlog_%uniqFileName%.txt
