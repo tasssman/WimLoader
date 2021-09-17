@@ -212,9 +212,21 @@ GetFreeLetters(amount)
 FormatDisk(diskId)
 {
     Log("Formating disk ID: " diskId)
+    format =
+    (
+        select disk disk_number
+        clean
+        create partition primary 
+        format quick fs=ntfs
+        assign
+        exit
+    )
     GuiControl, Main:, diskList, |...Formating disk ID: %diskId%...
     Sleep, 100
-    clearInfo := StdOutToVar("powershell Get-Disk " diskId " | Clear-Disk -RemoveData -Confirm:$false; Get-Disk " diskId " | Initialize-Disk | New-Partition -AssignDriveLetter -UseMaximumSize | Format-Volume")
+    formatToFile := StrReplace(format, "disk_number", diskId)
+    FileDelete, x:\format_disk.txt
+    FileAppend, %formatToFile%, x:\format_disk.txt
+    formatDisk := StdOutToVar("diskpart /s x:\format_disk.txt")
 }
 
 ;Check if disk in list is selected
