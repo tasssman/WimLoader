@@ -316,7 +316,7 @@ UEFIFormat(diskIdToFormat)
     FileDelete, x:\uefi_format.txt
     FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
     ProgressGuiAddStep("50", "Diskpart working...")
-    RunWait, diskpart /s x:\uefi_format.txt,,Min
+    formatUefi := StdOutToVar("diskpart /s x:\uefi_format.txt")
     formatLetters := {sysLetter:systemLetter, winLetter:windowsLetter}
     Gui, Progress: Destroy
     return formatLetters
@@ -351,7 +351,7 @@ LEGACYFormat(diskIdToFormat)
     FileDelete, x:\uefi_format.txt
     FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
     ProgressGuiAddStep("50", "Diskpart working...")
-    RunWait, diskpart /s x:\uefi_format.txt,,Min
+    formatLegacy := StdOutToVar("diskpart /s x:\uefi_format.txt")
     formatLetters := {sysLetter:sysytemLetter, winLetter:windowsLetter}
     Gui, Progress: Destroy
     return formatLetters
@@ -418,7 +418,7 @@ global uniqFileName
 global UsbCheckbox
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
-defaLocImagesPass = "123edc!@#EDC"
+defaLocImagesPass = 123edc!@#EDC
 updateLocFile = \sources\WimLoader.exe
 
 Log("=========================Script started for " serviceTag "=====================================")
@@ -433,7 +433,7 @@ defLocLett := GetFirstFreeLetter()
 
 ;Connect to default location and assign letter
 Log("Connecting to: "defaLocImages)
-RunWait, net use %defLocLett%: %defaLocImages% /user:%defaLocImagesUser% %defaLocImagesPass% /p:no,, Min
+defaultLoc := StdOutToVar("net use " defLocLett ": " defaLocImages " /user:" defaLocImagesUser " " defaLocImagesPass " /p:no")
 
 ;Load wims to main window and display them
 loadingImages(defLocLett)
@@ -522,11 +522,11 @@ ButtonUpdateApp:
 UpdateApp:
 Log("Update script started")
 copyAutoUpdate := StdOutToVar("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
-RunWait, net use %defLocLett%: /DELETE,, Min
+deleteLoc := StdOutToVar("net use * /DELETE /Y")
 Run, wimautoupdate.exe
 MainGuiEscape:
 MainGuiClose:
     Log("Script closed")
     ;Delete letter od default location of defLocLett variable
-    RunWait, net use %defLocLett%: /DELETE,, Min
+    deleteLoc := StdOutToVar("net use * /DELETE /Y")
     ExitApp
