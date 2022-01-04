@@ -395,6 +395,11 @@ generUniqFileName()
     return timeFile
 }
 
+delAllConn()
+{
+    StdOutToVar("net use * /DELETE /Y")
+}
+
 ;=====================Script START=====================
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
@@ -522,11 +527,11 @@ ButtonUpdateApp:
 UpdateApp:
 Log("Update script started")
 copyAutoUpdate := StdOutToVar("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
-deleteLoc := StdOutToVar("net use * /DELETE /Y")
+delAllConn()
 Run, wimautoupdate.exe
 MainGuiEscape:
 MainGuiClose:
     Log("Script closed")
     ;Delete letter od default location of defLocLett variable
-    deleteLoc := StdOutToVar("net use * /DELETE /Y")
+    delAllConn()
     ExitApp
