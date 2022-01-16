@@ -20,13 +20,18 @@ Gui Add, Button, x32 y432 w80 h23 +Default   , Load image
 Gui Add, Button, x456 y165 w80 h23, Refresh Disks
 Gui, Add, Radio, x32 y459 w70 h20 Checked vMode, UEFI
 Gui, Add, Radio, x32 y+3 w70 h20, Legacy
-Gui Add, Text, x25 y510 w250 h23 +0x200 , Text
+
+Gui Add, Text, x25 y508 w57 h23 +0x200 , IP Address:
+Gui Add, Text, x+2 y508 w80 h23 +0x200 , 192.168.1.1
+Gui Add, Button, x+2 y508 w80 h23, Renew IP
+Gui Add, Text, x25 y531 w250 h23 +0x200 , Version 1.0.0 - Copyright Miasik Jakub
+
 Gui Add, Button, x440 y515 w120 h33, Update App!`nto v0.12.3.0
 Gui Font, s8
 Gui Add, Button, x456 y432 w80 h30, Refresh Images
 Gui Add, Button, x456 y465 w80 h23, Load manually
 Gui Font
-Gui Show, w563 h550, WIM Loader
+Gui Show, w563 h558, WIM Loader
 Return
 
 UpdateApp:
