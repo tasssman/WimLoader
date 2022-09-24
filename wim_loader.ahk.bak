@@ -25,7 +25,7 @@ StdOutToVar(cmd) {
 	NumPut(0x100, STARTUPINFO, (A_PtrSize == 4 ? 44 : 60), "UInt")        ; dwFlags
 	NumPut(hWritePipe, STARTUPINFO, (A_PtrSize == 4 ? 60 : 88), "Ptr")    ; hStdOutput
 	NumPut(hWritePipe, STARTUPINFO, (A_PtrSize == 4 ? 64 : 96), "Ptr")    ; hStdError
-
+	
 	if !DllCall(
 	(Join Q C
 		"CreateProcess",             ; http://goo.gl/9y0gw
@@ -171,6 +171,7 @@ DisplayMainWindow()
     Gui Main:Font, s9, Segoe UI
     Gui Main:Add, ListBox, x32 y16 w504 h147 vdiskList, ...Loading list of disk...
     Gui Main:Add, ListBox, x32 y208 w503 h225 vimagesList, ...Loading list of images...
+    Gui Main:Add, Button, x283 y165 w80 h23 gWipeDisk, Wipe Disk
     Gui Main:Add, Button, x370 y165 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
     Gui Main:Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
     Gui Main:Add, CheckBox, x32 y165 w120 h20 vUsbCheckbox gRunCheckUsb, Show USB drives
@@ -190,7 +191,7 @@ DisplayMainWindow()
 ;Get first free letter drive without comma
 GetFirstFreeLetter()
 {
-    freeDiskLetter := StdOutToVar("powershell ls function:[k-u]: -n | ?{ !(test-path $_) } | select -first 1")
+    freeDiskLetter := StdOutToVar("powershell ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first 1")
 	freeDiskLetter := RegExReplace(freeDiskLetter, "\r\n", "")
     freeDiskLetter := RegExReplace(freeDiskLetter, ":", "")
     Log("First free letter: "freeDiskLetter)
@@ -200,7 +201,7 @@ GetFirstFreeLetter()
 ;Letters with comma in array
 GetFreeLetters(amount)
 {
-    freeDiskLetters := StdOutToVar("powershell (ls function:[k-u]: -n | ?{ !(test-path $_) } | select -first " amount ") -join ';' ")
+    freeDiskLetters := StdOutToVar("powershell (ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first " amount ") -join ';' ")
 	freeDiskLetters := RegExReplace(freeDiskLetters, "\r\n", "")
     freeDiskLetters := RegExReplace(freeDiskLetters, ":", "")
 	freeDiskLetters := StrSplit(freeDiskLetters, ";")
@@ -216,7 +217,7 @@ FormatDisk(diskId)
     (
         select disk disk_number
         clean
-        create partition primary
+        create partition primary 
         format quick fs=ntfs
         assign
         exit
@@ -227,6 +228,12 @@ FormatDisk(diskId)
     FileDelete, x:\format_disk.txt
     FileAppend, %formatToFile%, x:\format_disk.txt
     formatDisk := StdOutToVar("diskpart /s x:\format_disk.txt")
+}
+
+;Wipe disk
+WipeDisk(diskId)
+{
+    RunWait, ,,Max
 }
 
 ;Check if disk in list is selected
@@ -302,7 +309,7 @@ UEFIFormat(diskIdToFormat)
         rem == 2. Microsoft Reserved (MSR) partition =======
         create partition msr size=16
         rem == 3. Windows partition ========================
-        create partition primary
+        create partition primary 
         format quick fs=ntfs label="Windows"
         assign letter="second_letter"
         exit
@@ -337,7 +344,7 @@ LEGACYFormat(diskIdToFormat)
         rem == 2. Microsoft Reserved (MSR) partition =======
         create partition msr size=16
         rem == 3. Windows partition ========================
-        create partition primary
+        create partition primary 
         format quick fs=ntfs label="Windows"
         assign letter="second_letter"
         exit
@@ -406,7 +413,7 @@ uniqFileName := generUniqFileName()
 ;Get service tag
 serviceTag := getServiceTagPC()
 ;=====================Variables=====================
-global version = "0.14.0.1"
+global version = "0.14.0.0"
 Log("Script version: "version)
 global diskList
 global imagesList

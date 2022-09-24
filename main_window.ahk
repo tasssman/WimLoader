@@ -15,6 +15,7 @@ Gui Add, ListBox, x32 y16 w504 h147, DiskList
 Gui Add, ListBox, x32 y208 w503 h225, ImagesList
 Gui Add, Text, x25 y510 w83 h23 +0x200   , Version 1.0.0.0
 Gui, Add, CheckBox, x32 y165 w120 h20, Show USB drives
+Gui Add, Button, x283 y165 w80 h23, Wipe Disk
 Gui Add, Button, x370 y165 w80 h23, Format Disk
 Gui Add, Button, x32 y432 w80 h23 +Default   , Load image
 Gui Add, Button, x456 y165 w80 h23, Refresh Disks
