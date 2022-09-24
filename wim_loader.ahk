@@ -176,7 +176,10 @@ DisplayMainWindow()
     Gui Main:Add, CheckBox, x32 y165 w120 h20 vUsbCheckbox gRunCheckUsb, Show USB drives
     Gui Main:Add, Button, x456 y165 w80 h23 gButtonRefreshDisks, Refresh Disks
     Gui Main:Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
-    Gui Main:Add, Text, x25 y510 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
+    Gui Main:Add, Text, x25 y508 w57 h23 +0x200 , IP Address:
+    Gui Main:Add, Text, x+2 y508 w80 h23 +0x200 vip
+    Gui main:Add, Button, x+2 y508 w80 h23 gButtonRenew, Renew IP
+    Gui Main:Add, Text, x25 y531 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
     Gui Main:Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
     Gui Main:Font
     Gui Main:Font, s8
@@ -184,7 +187,7 @@ DisplayMainWindow()
     Gui Main:Add, Button, x456 y465 w80 h23 gButtonLoadManually, Load manually
     Gui Main:Font
     Gui Main:Font, s9, Segoe UI
-    Gui Main:Show, w563 h550, WIM Loader
+    Gui Main:Show, w563 h558, WIM Loader
 }
 
 ;Get first free letter drive without comma
@@ -400,6 +403,27 @@ delAllConn()
     StdOutToVar("net use * /DELETE /Y")
 }
 
+IpCheck()
+{
+    ipAddress := StdOutToVar("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '172.29.*' }")
+    return ipAddress
+}
+
+IpTextUpdate()
+{
+    GuiControl, Main:, ip, %AddressIp%
+}
+
+renewIpAddress()
+{
+    GuiControl Main: Disable, ButtonRenew
+    GuiControl, Main:, ip,  Wait please...
+    StdOutToVar("ipconfig /renew")
+    IpCheck()
+    IpTextUpdate()
+    GuiControl Main: Enable, ButtonRenew
+}
+
 ;=====================Script START=====================
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
@@ -421,6 +445,9 @@ global Mode
 global serviceTag
 global uniqFileName
 global UsbCheckbox
+global AddressIp
+global ip
+global ButtonRenew
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = images
 defaLocImagesPass = 123edc!@#EDC
@@ -432,7 +459,9 @@ DisplayMainWindow()
 
 ;Load disk to main window and display them
 listDisk()
-
+;Get IP ipAddress
+AddressIp := IpCheck()
+IpTextUpdate()
 ;Get free letter to mount default location for images
 defLocLett := GetFirstFreeLetter()
 
@@ -521,6 +550,10 @@ return
 
 OpenStdOutlog:
 Run notepad.exe wimlog_%uniqFileName%_StdOutput.txt
+return
+
+ButtonRenew:
+renewIpAddress()
 return
 
 ButtonUpdateApp:
