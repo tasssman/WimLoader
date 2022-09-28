@@ -474,15 +474,19 @@ loadingImages(defLocLett)
 
 ;Check for updates
 Log("Checking for update")
-FileGetVersion, wimLoaderVer , %defLocLett%:%updateLocFile%
-if (wimLoaderVer == version)
+
+IfExist, %defLocLett%:%updateLocFile%
 {
-    Log("Update not found")
-    return
-} Else
-{
-    Log("Update found")
-    Gui Main:Add, Button, x440 y515 w120 h33 gButtonUpdateApp, Update App!`nto %wimLoaderVer%
+    FileGetVersion, wimLoaderVer , %defLocLett%:%updateLocFile%
+    if (wimLoaderVer == version)
+    {
+        Log("Update not found")
+        return
+    } Else
+    {
+        Log("Update found")
+        Gui Main:Add, Button, x440 y515 w120 h33 gButtonUpdateApp, Update App!`nto %wimLoaderVer%
+    }
 }
 return
 
