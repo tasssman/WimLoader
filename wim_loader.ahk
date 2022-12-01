@@ -430,7 +430,7 @@ uniqFileName := generUniqFileName()
 ;Get service tag
 serviceTag := getServiceTagPC()
 ;=====================Variables=====================
-global version = "0.14.0.1"
+global version = "0.14.0.2"
 Log("Script version: "version)
 global diskList
 global imagesList
@@ -449,7 +449,7 @@ global AddressIp
 global ip
 global ButtonRenew
 global defaLocImages = "\\pchw\images"
-defaLocImagesUser = images
+defaLocImagesUser = cos\images
 defaLocImagesPass = 123edc!@#EDC
 updateLocFile = \sources\WimLoader.exe
 
