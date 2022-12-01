@@ -1,0 +1,2 @@
+wpeinit
+start wimloader.exe
