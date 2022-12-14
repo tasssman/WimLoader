@@ -219,6 +219,7 @@ FormatDisk(diskId)
     (
         select disk disk_number
         clean
+        convert gpt
         create partition primary
         format quick fs=ntfs
         assign
@@ -430,7 +431,7 @@ uniqFileName := generUniqFileName()
 ;Get service tag
 serviceTag := getServiceTagPC()
 ;=====================Variables=====================
-global version = "0.14.0.2"
+global version = "0.14.0.3"
 Log("Script version: "version)
 global diskList
 global imagesList
