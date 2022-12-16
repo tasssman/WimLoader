@@ -108,7 +108,7 @@ ProgressGuiAddStep("40", "Mounting PCHW ...")
 mountLetter := GetFirstFreeLetter()
 RunWait, net use %mountLetter%: %defaLocUpdate% /user:%defaultUser% %defaultPass% /p:no,, Min
 ProgressGuiAddStep("70", "Copying boot.wim ...")
-;copyToMountLoc := StdOutToVar("xcopy " mountLetter ":\media\sources\boot.wim " usbLetter ":\sources /y")
+copyToMountLoc := StdOutToVar("xcopy " mountLetter ":\media\sources\boot.wim " usbLetter ":\sources /y")
 FileDelete, %usbLetter%:\sources\boot.wim
 RunWait, robocopy %mountLetter%:\media\sources\ %usbLetter%:\sources boot.wim /eta /is,,Max
 RunWait, net use %mountLetter%: /DELETE /Y
