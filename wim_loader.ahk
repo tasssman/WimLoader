@@ -378,6 +378,7 @@ delAllConn()
 IpCheck()
 {
     ipAddress := StdOutToVar("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '172.29.*' }")
+    ipAddress := RegExReplace(ipAddress, "\r\n", " ")
     return ipAddress
 }
 
