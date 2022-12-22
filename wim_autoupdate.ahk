@@ -44,6 +44,17 @@ StdOutToVar(cmd) {
 	return sOutput
 }
 
+MainWindow()
+{
+	Gui Main: New
+	Gui Font, s9, Segoe UI
+	Gui Add, Edit, x8 y56 w736 h312 +ReadOnly +Multi vLogWindow
+	Gui Add, Text, x320 y16 w124 h27 +0x200, Updating Wim Loader
+	Gui Show, w753 h385, Autoupdate
+	Return
+}
+
+
 ;Get first free letter drive without comma
 GetFirstFreeLetter()
 {
@@ -53,44 +64,31 @@ GetFirstFreeLetter()
 	return freeDiskLetter
 }
 
-ProgressGui(textStatus)
+LogToWindow(text)
 {
-	Gui, Progress:Add, Progress, w200 h20 -Smooth vProgressBar
-	Gui, Progress:Add,Text,vStatus w200 h20, %textStatus%
-	Gui, Progress:Show, AutoSize, Progress
-	Gui, Progress:-Caption
-	WinSet, AlwaysOnTop, , Progress
-	Sleep, 100
-	Return
-}
-
-ProgressGuiAddStep(setProgress, changeText)
-{
-	Loading:
-    GuiControl, Progress:, ProgressBar, %setProgress%
-	if (changeText != "")
-	{
-		GuiControl, Progress:, Status, %changeText%
-	}
-	Sleep, 100
-    WinSet, AlwaysOnTop, , Progress
-	return
+	FormatTime, timeNow,,yyyy-MM-dd_HH:mm:ss
+	textLog = %textLog%`r`n%timeNow% - %text%
+	GuiControl, Main:, LogWindow, %textLog%
+    SendMessage,0x115,7,0,Edit1,Autoupdate
 }
 
 ;=====================Script START=====================
 ;=====================Variables=====================
-MsgBox 0x40030, , Please DO NOT remove USB stick
+;Variables
+global LogWindow
 global ProgressBar
 global Status
+global textLog
 defaLocUpdate = "\\pchw\winpe"
 defaLocSources = "\\pchw\images\sources"
-defaultUser = images
+defaultUser = cos\images
 defaultPass = "123edc!@#EDC"
 updateFileUpdate = WimLoader.exe
 disk := "c,d,e,f,g,h,i,j,k,l,m,o,p"
 
-ProgressGui("Searching for usb stick ...")
-ProgressGuiAddStep("20", "")
+MainWindow()
+
+LogToWindow("Searching fo USB drive with WinPE...")
 Loop, Parse, disk, `,
 {
 	usbLetter := A_LoopField
@@ -102,27 +100,38 @@ Loop, Parse, disk, `,
 }
 ;I USB drive not exist
 MsgBox 0x40010, USB not found, USB drive with WimLoader not found. Please copy manualy boot.wim from PCHW
+	Goto, Exiting
 
 Continue:
-ProgressGuiAddStep("40", "Mounting PCHW ...")
+LogToWindow("Mounting PCHW ...")
 mountLetter := GetFirstFreeLetter()
-RunWait, net use %mountLetter%: %defaLocUpdate% /user:%defaultUser% %defaultPass% /p:no,, Min
-ProgressGuiAddStep("70", "Copying boot.wim ...")
-copyToMountLoc := StdOutToVar("xcopy " mountLetter ":\media\sources\boot.wim " usbLetter ":\sources /y")
+commandMount = net use %mountLetter%: %defaLocUpdate% /user:%defaultUser% %defaultPass% /p:no
+LogToWindow(commandMount)
+commandMountReturn := StdOutToVar(commandMount)
+LogToWindow(commandMountReturn)
+LogToWindow("Deleting old boot.wim")
 FileDelete, %usbLetter%:\sources\boot.wim
-RunWait, robocopy %mountLetter%:\media\sources\ %usbLetter%:\sources boot.wim /eta /is,,Max
-RunWait, net use %mountLetter%: /DELETE /Y
+LogToWindow("Done")
+LogToWindow("Copy new boot.wim")
+commandCopyNewBootWim = robocopy %mountLetter%:\media\sources\ %usbLetter%:\sources boot.wim /eta /is
+commandCopyNewBootWimReturn := StdOutToVar(commandCopyNewBootWim)
+LogToWindow(commandCopyNewBootWimReturn)
+deleteMounts = net use %mountLetter%: /DELETE /Y
+deleteMountsReturn := StdOutToVar(deleteMounts)
+LogToWindow(deleteMountsReturn)
+LogToWindow("Runnig latest version")
 mountLetter := GetFirstFreeLetter()
-RunWait, net use %mountLetter%: %defaLocSources% /user:%defaultUser% %defaultPass% /p:no,, Min
-ProgressGuiAddStep("80", "Copying boot.wim ...")
+mountCommand = net use %mountLetter%: %defaLocSources% /user:%defaultUser% %defaultPass% /p:no
+mountCommandReturn := StdOutToVar(mountCommand)
+LogToWindow(mountCommandReturn)
 copyToXLoc := StdOutToVar("xcopy " mountLetter ":\WimLoader.exe x:\windows\system32 /y")
-ProgressGuiAddStep("100", "Done")
-Sleep, 1000
-
 
 Exiting:
-Gui, Progress: Destroy
-RunWait, net use %mountLetter%: /DELETE /Y
+LogToWindow("Unmouting all")
+commandUnmouting = net use %mountLetter%: /DELETE /Y
+StdOutToVar(commandUnmouting)
+LogToWindow("Done")
+LogToWindow("Exiting...")
 Sleep, 2000
 Run, WimLoader.exe
 ExitApp
