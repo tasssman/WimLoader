@@ -489,6 +489,7 @@ GuiControl, Main:, diskList, |...Wait please...
 Sleep, 100 ;Only for see above
 listDisk()
 GuiControl Main: Enable, ButtonFormatDisk
+LogToWindow("Done")
 return
 
 ;Refresh list of images on demand
@@ -498,6 +499,7 @@ Log("Images refresh demand")
 GuiControl, Main:, imagesList, |...Wait please...
 Sleep, 100 ;Only for see text above
 loadingImages(defLocLett)
+LogToWindow("Done")
 return
 
 ButtonInstallImage:
