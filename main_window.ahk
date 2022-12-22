@@ -4,42 +4,27 @@
 SetWorkingDir %A_ScriptDir%
 SetBatchLines -1
 
-Menu, Options, Add, Open wim log, OpenWimlog
-Menu, Options, Add, Open commands log, OpenWimlog
-Menu, BarMenu, Add, Options, :Options
-Menu, About, Add, Update App, UpdateApp
-Menu, BarMenu, Add, About, :About
-Gui, Menu, BarMenu
+Gui Main: New
 Gui Font, s9, Segoe UI
-Gui Add, ListBox, x32 y16 w504 h147, DiskList
-Gui Add, ListBox, x32 y208 w503 h225, ImagesList
-Gui Add, Text, x25 y510 w83 h23 +0x200   , Version 1.0.0.0
-Gui, Add, CheckBox, x32 y165 w120 h20, Show USB drives
-Gui Add, Button, x283 y165 w80 h23, Wipe Disk
-Gui Add, Button, x370 y165 w80 h23, Format Disk
-Gui Add, Button, x32 y432 w80 h23 +Default   , Load image
-Gui Add, Button, x456 y165 w80 h23, Refresh Disks
-Gui, Add, Radio, x32 y459 w70 h20 Checked vMode, UEFI
-Gui, Add, Radio, x32 y+3 w70 h20, Legacy
+Gui Add, ListBox, x32 y16 w425 h134 0x50010081 , ...Loading list of disk...
+Gui Add, ListBox, x32 y208 w425 h212 0x50010081 , ...Loading list of images...
+Gui Add, Button, x288 y160 w80 h23 +Disabled  0x58012000 , Format Disk
+Gui Add, Button, x32 y432 w80 h23 +Disabled  0x58012000 , Install image
+Gui Add, CheckBox, x32 y165 w120 h20 0x50012003 , Show USB drives
+Gui Add, Button, x376 y160 w80 h23 0x50012000 , Refresh Disks
+Gui Add, DropDownList, x32 y459 w100 0x50010203 , UEFI Format|LEGACY Format
+Gui Add, Text, x25 y508 w57 h23 0x50000200 , IP Address:
+Gui Add, Text, x84 y508 w80 h23 0x50000200 
+Gui Add, Button, x166 y508 w80 h23 0x50012000 , Renew IP
+Gui Add, Text, x25 y531 w250 h23 0x50000200 , Version 0.14.0.4 - Copyright Miasik Jakub
+Gui Add, Text, x120 y432 w200 h22 0x50000200 
+Gui Add, Button, x376 y432 w80 h23 0x50012000 , Refresh Images
+Gui Add, Button, x376 y464 w80 h23 0x50012000 , Load manually
+Gui Add, Edit, x472 y16 w296 h529 +ReadOnly +Multi
 
-Gui Add, Text, x25 y508 w57 h23 +0x200 , IP Address:
-Gui Add, Text, x+2 y508 w80 h23 +0x200 , 192.168.1.1
-Gui Add, Button, x+2 y508 w80 h23, Renew IP
-Gui Add, Text, x25 y531 w250 h23 +0x200 , Version 1.0.0 - Copyright Miasik Jakub
-
-Gui Add, Button, x440 y515 w120 h33, Update App!`nto v0.12.3.0
-Gui Font, s8
-Gui Add, Button, x456 y432 w80 h30, Refresh Images
-Gui Add, Button, x456 y465 w80 h23, Load manually
-Gui Font
-Gui Show, w563 h558, WIM Loader
+Gui Show, w777 h558, WIM Loader
 Return
 
-UpdateApp:
-OpenWimlog:
-return
-
-
-GuiEscape:
-GuiClose:
+MainGuiEscape:
+MainGuiClose:
     ExitApp

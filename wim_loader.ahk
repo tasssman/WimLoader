@@ -168,26 +168,28 @@ DisplayMainWindow()
     Menu, BarMenu, Add, About, :About
     Gui Main:Menu, BarMenu
     ;Gui loading
-    Gui Main:Font, s9, Segoe UI
-    Gui Main:Add, ListBox, x32 y16 w504 h147 vdiskList, ...Loading list of disk...
-    Gui Main:Add, ListBox, x32 y208 w503 h225 vimagesList, ...Loading list of images...
-    Gui Main:Add, Button, x370 y165 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
-    Gui Main:Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
-    Gui Main:Add, CheckBox, x32 y165 w120 h20 vUsbCheckbox gRunCheckUsb, Show USB drives
-    Gui Main:Add, Button, x456 y165 w80 h23 gButtonRefreshDisks, Refresh Disks
-    Gui Main:Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
-    Gui Main:Add, Text, x25 y508 w57 h23 +0x200 , IP Address:
-    Gui Main:Add, Text, x+2 y508 w80 h23 +0x200 vip
-    Gui main:Add, Button, x+2 y508 w80 h23 gButtonRenew, Renew IP
-    Gui Main:Add, Text, x25 y531 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
-    Gui Main:Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
-    Gui Main:Font
-    Gui Main:Font, s8
-    Gui Main:Add, Button, x456 y432 w80 h30 gButtonRefreshImages, Refresh Images
-    Gui Main:Add, Button, x456 y465 w80 h23 gButtonLoadManually, Load manually
-    Gui Main:Font
-    Gui Main:Font, s9, Segoe UI
-    Gui Main:Show, w563 h558, WIM Loader
+    Gui Main: New
+    Gui Font, s9, Segoe UI
+    Gui Add, ListBox, x32 y16 w425 h134 vdiskList, ...Loading list of disk...
+    Gui Add, ListBox, x32 y208 w425 h212 vimagesList, ...Loading list of images...
+    Gui Add, Button, x288 y160 w80 h23 gFormatDisk vButtonFormatDisk Disabled, Format Disk
+    Gui Add, Button, x32 y432 w80 h23 gButtonInstallImage vInstallImage Disabled, Install image
+    Gui Add, CheckBox, x32 y165 w120 h20 vUsbCheckbox gRunCheckUsb, Show USB drives
+    Gui Add, Button, x376 y160 w80 h23 gButtonRefreshDisks, Refresh Disks
+    Gui Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
+    Gui Add, Text, x25 y508 w57 h23 +0x200 , IP Address:
+    Gui Add, Text, x+2 y508 w80 h23 +0x200 vip
+    Gui Add, Button, x+2 y508 w80 h23 gButtonRenew, Renew IP
+    Gui Add, Text, x25 y531 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
+    Gui Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
+    Gui Font
+    Gui Font, s8
+    Gui Add, Button, x376 y432 w80 h30 gButtonRefreshImages, Refresh Images
+    Gui Add, Button, x376 y464 w80 h23 gButtonLoadManually, Load manually
+    Gui Font
+    Gui Font, s9, Segoe UI
+    Gui Add, Edit, x472 y16 w296 h529 +ReadOnly +Multi vLogWindow
+    Gui Show, w777 h558, WIM Loader
 }
 
 ;Get first free letter drive without comma
@@ -272,11 +274,10 @@ InstallImage(imageFile, disksLetters)
     windowsLetter := disksLetters["winLetter"]
     systemLetter := disksLetters["sysLetter"]
     Log("dism apply image start")
-    RunWait, dism /apply-image /imagefile:%imageFile% /index:1 /applydir:%windowsLetter%:\ /NoRpFix,,Max
+    RunWait, dism /apply-image /imagefile:%imageFile% /index:1 /applydir:%windowsLetter%:\ /NoRpFix,,Min
     Log("dism apply image end")
     Log("bcdboot copy")
     RunWait, %windowsLetter%:\Windows\System32\bcdboot %windowsLetter%:\Windows /s %systemLetter%:
-    Gui, Progress: Destroy
     MsgBox, 64, Reset, Will be Reset after OK is pressed or in 5 sec, 5
     Log("Rebooting")
     Run, wpeutil Reboot,,Min
@@ -293,7 +294,6 @@ InstallDiskNumber()
 UEFIFormat(diskIdToFormat)
 {
     Log("Loaded UEFI diskpart format")
-    ProgressGui("UEFI Formating...")
     uefi_partitions =
     (
         select disk disk_number
@@ -319,17 +319,14 @@ UEFIFormat(diskIdToFormat)
     windowsLetter :=  letters[2]
     FileDelete, x:\uefi_format.txt
     FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
-    ProgressGuiAddStep("50", "Diskpart working...")
     formatUefi := StdOutToVar("diskpart /s x:\uefi_format.txt")
     formatLetters := {sysLetter:systemLetter, winLetter:windowsLetter}
-    Gui, Progress: Destroy
     return formatLetters
 }
 
 LEGACYFormat(diskIdToFormat)
 {
     Log("Loaded LEGACY diskpart format")
-    ProgressGui("LEGACY Formating...")
     legacy_partitions =
     (
         select disk disk_number
@@ -354,37 +351,11 @@ LEGACYFormat(diskIdToFormat)
     windowsLetter :=  letters[2]
     FileDelete, x:\uefi_format.txt
     FileAppend, %uefiPartiToFile%, x:\uefi_format.txt
-    ProgressGuiAddStep("50", "Diskpart working...")
     formatLegacy := StdOutToVar("diskpart /s x:\uefi_format.txt")
     formatLetters := {sysLetter:sysytemLetter, winLetter:windowsLetter}
-    Gui, Progress: Destroy
     return formatLetters
 }
 
-
-ProgressGui(textStatus)
-{
-	Gui, Progress:Add, Progress, w200 h20 -Smooth vProgressBar
-	Gui, Progress:Add,Text,vStatus w200 h20, %textStatus%
-	Gui, Progress:Show, AutoSize, Progress
-	Gui, Progress:-Caption
-	WinSet, AlwaysOnTop, , Progress
-	Sleep, 100
-	Return
-}
-
-ProgressGuiAddStep(setProgress, changeText)
-{
-	Loading:
-    GuiControl, Progress:, ProgressBar, %setProgress%
-	if (changeText != "")
-	{
-		GuiControl, Progress:, Status, %changeText%
-	}
-	Sleep, 100
-    WinSet, AlwaysOnTop, , Progress
-	return
-}
 getServiceTagPC()
 {
     PCTag := StdOutToVar("powershell Get-WmiObject win32_SystemEnclosure | select serialnumber | ft -HideTableHeaders")
@@ -425,6 +396,14 @@ renewIpAddress()
     GuiControl Main: Enable, ButtonRenew
 }
 
+LogToWindow(text)
+{
+	FormatTime, timeNow,,yyyy-MM-dd_HH:mm:ss
+	textLog = %textLog%`r`n%timeNow% - %text%
+	GuiControl, Main:, LogWindow, %textLog%
+    SendMessage,0x115,7,0,Edit1,WIM Loader
+}
+
 ;=====================Script START=====================
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
@@ -440,7 +419,6 @@ global ButtonRefreshImages
 global CurrImagePathText
 global ButtonFormatDisk
 global InstallImage
-global ProgressBar
 global Status
 global Mode
 global serviceTag
@@ -449,6 +427,8 @@ global UsbCheckbox
 global AddressIp
 global ip
 global ButtonRenew
+global textLog
+global LogWindow
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = cos\images
 defaLocImagesPass = 123edc!@#EDC
@@ -456,24 +436,31 @@ updateLocFile = \sources\WimLoader.exe
 
 Log("=========================Script started for " serviceTag "=====================================")
 ;Display Main Window
+LogToWindow("Generating main window...")
 DisplayMainWindow()
 
 ;Load disk to main window and display them
+LogToWindow("Listing disk...")
 listDisk()
 ;Get IP ipAddress
+LogToWindow("Waiting for network...")
 AddressIp := IpCheck()
+LogToWindow(AddressIp)
 IpTextUpdate()
 ;Get free letter to mount default location for images
 defLocLett := GetFirstFreeLetter()
 
 ;Connect to default location and assign letter
+LogToWindow("Connecting to IMAGES...")
 Log("Connecting to: "defaLocImages)
 defaultLoc := StdOutToVar("net use " defLocLett ": " defaLocImages " /user:" defaLocImagesUser " " defaLocImagesPass " /p:no")
 
 ;Load wims to main window and display them
+LogToWindow("Loading images...")
 loadingImages(defLocLett)
 
 ;Check for updates
+LogToWindow("Checking for updates...")
 Log("Checking for update")
 
 IfExist, %defLocLett%:%updateLocFile%
@@ -482,10 +469,12 @@ IfExist, %defLocLett%:%updateLocFile%
     if (wimLoaderVer == version)
     {
         Log("Update not found")
+        LogToWindow("No updates found...")
         return
     } Else
     {
         Log("Update found")
+        LogToWindow("Update found...")
         Gui Main:Add, Button, x440 y515 w120 h33 gButtonUpdateApp, Update App!`nto %wimLoaderVer%
     }
 }
@@ -493,6 +482,7 @@ return
 
 ;Load images on startup app or refresh on demand
 ButtonRefreshDisks:
+LogToWindow("Refreshing disks...")
 GuiControl Main: Disable, ButtonFormatDisk
 GuiControl, Main:, diskList, |...Wait please...
 Sleep, 100 ;Only for see above
@@ -502,6 +492,7 @@ return
 
 ;Refresh list of images on demand
 ButtonRefreshImages:
+LogToWindow("Refreshing images...")
 Log("Images refresh demand")
 GuiControl, Main:, imagesList, |...Wait please...
 Sleep, 100 ;Only for see text above
@@ -509,17 +500,22 @@ loadingImages(defLocLett)
 return
 
 ButtonInstallImage:
+LogToWindow("Starting install proccess...")
 Log("Install image by user")
 GuiControlGet, Mode
 diskInstall := InstallDiskNumber()
 if Mode = UEFI Format
 {
+    LogToWindow("Formating to UEFI...")
     lettersDisks := UEFIFormat(diskInstall)
 } else if Mode = LEGACY Format
 {
+    LogToWindow("Formating to LEGACY...")
     lettersDisks := LEGACYFormat(diskInstall)
 }
 GuiControlGet, imageToInstall,, imagesList ;global variable
+LogToWindow("Loading " . imageToInstall . " to disk " . lettersDisks)
+LogToWindow("Loading. Please wait...")
 InstallImage(imageToInstall, lettersDisks)
 return
 
@@ -535,7 +531,9 @@ IfMsgBox No
 } else {
     GuiControlGet, diskInfo,,diskList
     RegExMatch(diskInfo,"[0-9]{1}",diskId)
+    LogToWindow("Formating disk ID " . diskId . " Please wait...")
     FormatDisk(diskId)
+    LogToWindow("Done")
     listDisk()
 }
 return
@@ -558,11 +556,14 @@ Run notepad.exe wimlog_%uniqFileName%_StdOutput.txt
 return
 
 ButtonRenew:
+LogToWindow("Renew IP address in progress...")
 renewIpAddress()
+LogToWindow("Done")
 return
 
 ButtonUpdateApp:
 UpdateApp:
+LogToWindow("Updating app...")
 Log("Update script started")
 copyAutoUpdate := StdOutToVar("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
 delAllConn()
