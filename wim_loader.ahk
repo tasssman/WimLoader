@@ -177,9 +177,9 @@ DisplayMainWindow()
     Gui Add, CheckBox, x32 y165 w120 h20 vUsbCheckbox gRunCheckUsb, Show USB drives
     Gui Add, Button, x376 y160 w80 h23 gButtonRefreshDisks, Refresh Disks
     Gui Add, DropDownList, x32 y459 w100 vMode, UEFI Format||LEGACY Format
-    Gui Add, Text, x25 y508 w57 h23 +0x200 , IP Address:
-    Gui Add, Text, x+2 y508 w80 h23 +0x200 vip
-    Gui Add, Button, x+2 y508 w80 h23 gButtonRenew, Renew IP
+    Gui Add, Text, x24 y504 w57 h23 +0x200 , IP Address:
+    Gui Add, Text, x88 y504 w91 h23 +0x200 vip
+    Gui Add, Button, x184 y504 w80 h23 gButtonRenew, Renew IP
     Gui Add, Text, x25 y531 w250 h23 +0x200, Version %version% - Copyright Miasik Jakub
     Gui Add, Text, x120 y432 w200 h22 +0x200 vCurrImagePathText
     Gui Font
