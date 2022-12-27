@@ -161,6 +161,7 @@ DisplayMainWindow()
 {
     Log("Loading main window")
     ;Menu loading
+    Gui Main: New
     Menu, Options, Add, Open WIM log, OpenWimlog
     Menu, Options, Add, Open StdOut log, OpenStdOutlog
     Menu, BarMenu, Add, Options, :Options
@@ -168,7 +169,6 @@ DisplayMainWindow()
     Menu, BarMenu, Add, About, :About
     Gui Main:Menu, BarMenu
     ;Gui loading
-    Gui Main: New
     Gui Font, s9, Segoe UI
     Gui Add, ListBox, x32 y16 w425 h134 vdiskList, ...Loading list of disk...
     Gui Add, ListBox, x32 y208 w425 h212 vimagesList, ...Loading list of images...
