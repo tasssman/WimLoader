@@ -6,7 +6,7 @@
 RunWait, D:\!PC\Dokumenty\winpe_v2\Compiler\Ahk2Exe.exe /in D:\!PC\Dokumenty\winpe_v2\wim_loader.ahk /out \\pchw\d$\images\sources\WimLoader_dev.exe /base D:\!PC\Dokumenty\winpe_v2\Compiler\AutoHotkey.exe /bin D:\!PC\Dokumenty\winpe_v2\Compiler\Unicode64-bit.bin
 
 ;WimLoader
-;RunWait, D:\!PC\Dokumenty\winpe_v2\Compiler\Ahk2Exe.exe /in D:\!PC\Dokumenty\winpe_v2\wim_loader.ahk /out \\pchw\d$\images\sources\WimLoader_0_14_0_4.exe /base D:\!PC\Dokumenty\winpe_v2\Compiler\AutoHotkey.exe /bin D:\!PC\Dokumenty\winpe_v2\Compiler\Unicode64-bit.bin
+;RunWait, D:\!PC\Dokumenty\winpe_v2\Compiler\Ahk2Exe.exe /in D:\!PC\Dokumenty\winpe_v2\wim_loader.ahk /out \\pchw\d$\images\sources\WimLoader_1_0_0_0.exe /base D:\!PC\Dokumenty\winpe_v2\Compiler\AutoHotkey.exe /bin D:\!PC\Dokumenty\winpe_v2\Compiler\Unicode64-bit.bin
 
 ;WimAutoupdate
 ;RunWait, D:\!PC\Dokumenty\winpe_v2\Compiler\Ahk2Exe.exe /in D:\!PC\Dokumenty\winpe_v2\wim_autoupdate.ahk /out \\pchw\d$\images\sources\WimAutoUpdate.exe
