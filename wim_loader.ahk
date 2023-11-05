@@ -188,7 +188,11 @@ DisplayMainWindow()
     Gui Add, Button, x376 y464 w80 h23 gButtonLoadManually, Load manually
     Gui Font
     Gui Font, s9, Segoe UI
-    Gui Add, Edit, x472 y16 w296 h529 +ReadOnly +Multi vLogWindow
+    Gui Add, Edit, x464 y16 w305 h404 +ReadOnly +Multi vLogWindow
+    Gui Add, Text, x464 y432 w57 h23, Processor:
+    Gui Add, Text, x528 y432 w238 h23 vProcessor
+    Gui Add, Text, x464 y464 w57 h23, RAM:
+    Gui Add, Edit, x527 y465 w240 h89 +ReadOnly +Multi vRAM 
     Gui Show, w777 h558, WIM Loader
 }
 
@@ -364,6 +368,20 @@ getServiceTagPC()
     return PCtag
 }
 
+getProcessorInfo()
+{
+    processorInfo := StdOutToVar("powershell Get-WmiObject Win32_Processor | select Name | ft -HideTableHeaders")
+    processorInfo := RegExReplace(processorInfo, "\r\n", " ")
+    return processorInfo
+}
+
+getRamInfo()
+{
+    ramInfo := StdOutToVar("powershell Get-WmiObject Win32_PhysicalMemory | Select-Object SerialNumber, Capacity, Configuredclockspeed | Format-List")
+    ramInfo := RegExReplace(ramInfo, "\n.*(?=Serial)", "")
+    return ramInfo
+}
+
 generUniqFileName()
 {
     FormatTime, timeFile,,yyyy_MM_dd_HH_mm_ss
@@ -411,7 +429,7 @@ uniqFileName := generUniqFileName()
 ;Get service tag
 serviceTag := getServiceTagPC()
 ;=====================Variables=====================
-global version = "1.0.0.1"
+global version = "1.0.0.2"
 Log("Script version: "version)
 global diskList
 global imagesList
@@ -430,6 +448,8 @@ global ip
 global ButtonRenew
 global textLog
 global LogWindow
+global Processor
+global RAM
 global defaLocImages = "\\pchw\images"
 defaLocImagesUser = cos\images
 defaLocImagesPass = 123edc!@#EDC
@@ -439,6 +459,13 @@ Log("=========================Script started for " serviceTag "=================
 ;Display Main Window
 LogToWindow("Generating main window...")
 DisplayMainWindow()
+;Get hardware info
+LogToWindow("Getting info about processor...")
+processor := getProcessorInfo()
+GuiControl, Main:, Processor, %processor%
+LogToWindow("Getting info about RAM...")
+ram := getRamInfo()
+GuiControl, Main:, RAM, %ram%
 
 ;Load disk to main window and display them
 LogToWindow("Listing disk...")
@@ -476,7 +503,7 @@ IfExist, %defLocLett%:%updateLocFile%
     {
         Log("Update found")
         LogToWindow("Update found...")
-        Gui Main:Add, Button, x440 y515 w120 h33 gButtonUpdateApp, Update App!`nto %wimLoaderVer%
+        Gui Main:Add, Button, x340 y515 w120 h33 gButtonUpdateApp, Update App!`nto %wimLoaderVer%
     }
 }
 return
