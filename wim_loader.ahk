@@ -425,7 +425,7 @@ uniqFileName := generUniqFileName()
 ;Get service tag
 serviceTag := getServiceTagPC()
 ;=====================Variables=====================
-global version = "1.0.0.2"
+global version = "1.0.0.3"
 Log("Script version: "version)
 global diskList
 global imagesList
