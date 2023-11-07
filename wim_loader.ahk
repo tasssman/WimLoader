@@ -455,8 +455,12 @@ Log("=========================Script started for " serviceTag "=================
 ;Display Main Window
 LogToWindow("Generating main window...")
 DisplayMainWindow()
+;Get PCTAG info
+LogToWindow("Getting PC tag...")
+tag := getServiceTagPC()
+LogToWindow(tag)
 ;Get hardware info
-LogToWindow("Getting info about processor and RAM")
+LogToWindow("Getting processor and RAM")
 processor := getProcessorInfo()
 ram := getRamInfo()
 LogToWindow(processor)
