@@ -20,11 +20,7 @@ Gui Add, Text, x25 y531 w250 h23 0x50000200 , Version 0.14.0.4 - Copyright Miasi
 Gui Add, Text, x120 y432 w200 h22 0x50000200 
 Gui Add, Button, x376 y432 w80 h23 0x50012000 , Refresh Images
 Gui Add, Button, x376 y464 w80 h23 0x50012000 , Load manually
-Gui Add, Edit, x464 y16 w305 h404 +ReadOnly +Multi
-Gui Add, Text, x464 y432 w57 h23 0x50000200 , Processor:
-Gui Add, Text, x528 y432 w238 h23 0x50000200
-Gui Add, Text, x464 y464 w57 h23 0x50000200 , RAM:
-Gui Add, Edit, x527 y465 w240 h89 +ReadOnly +Multi 
+Gui Add, Edit, x464 y16 w305 h536 +ReadOnly +Multi
 Gui Add, Button, x340 y515 w120 h33 , Update App!`nto %wimLoaderVer%
 Gui Show, w777 h558, WIM Loader
 Return

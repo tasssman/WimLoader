@@ -188,11 +188,7 @@ DisplayMainWindow()
     Gui Add, Button, x376 y464 w80 h23 gButtonLoadManually, Load manually
     Gui Font
     Gui Font, s9, Segoe UI
-    Gui Add, Edit, x464 y16 w305 h404 +ReadOnly +Multi vLogWindow
-    Gui Add, Text, x464 y432 w57 h23, Processor:
-    Gui Add, Text, x528 y432 w238 h23 vProcessor
-    Gui Add, Text, x464 y464 w57 h23, RAM:
-    Gui Add, Edit, x527 y465 w240 h89 +ReadOnly +Multi vRAM 
+    Gui Add, Edit, x464 y16 w305 h536 +ReadOnly +Multi vLogWindow
     Gui Show, w777 h558, WIM Loader
 }
 
