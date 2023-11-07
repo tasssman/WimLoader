@@ -367,14 +367,14 @@ getServiceTagPC()
 getProcessorInfo()
 {
     processorInfo := StdOutToVar("powershell Get-WmiObject Win32_Processor | select Name | ft -HideTableHeaders")
-    processorInfo := RegExReplace(processorInfo, "\r\n", " ")
+    processorInfo := RegExReplace(processorInfo, "\R+\R", "`r`n")
     return processorInfo
 }
 
 getRamInfo()
 {
     ramInfo := StdOutToVar("powershell Get-WmiObject Win32_PhysicalMemory | Select-Object SerialNumber, Capacity, Configuredclockspeed | Format-List")
-    ramInfo := RegExReplace(ramInfo, "\n.*(?=Serial)", "")
+    ramInfo := RegExReplace(ramInfo, "\R+\R", "`r`n")
     return ramInfo
 }
 
@@ -456,12 +456,11 @@ Log("=========================Script started for " serviceTag "=================
 LogToWindow("Generating main window...")
 DisplayMainWindow()
 ;Get hardware info
-LogToWindow("Getting info about processor...")
+LogToWindow("Getting info about processor and RAM")
 processor := getProcessorInfo()
-GuiControl, Main:, Processor, %processor%
-LogToWindow("Getting info about RAM...")
 ram := getRamInfo()
-GuiControl, Main:, RAM, %ram%
+LogToWindow(processor)
+LogToWindow(ram)
 
 ;Load disk to main window and display them
 LogToWindow("Listing disk...")
