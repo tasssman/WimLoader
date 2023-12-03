@@ -156,7 +156,7 @@ GetFreeLetters(amount)
 
 getServiceTagPC()
 {
-    PCTag := StdOutToVar("powershell Get-WmiObject win32_SystemEnclosure | select serialnumber | ft -HideTableHeaders")
+    PCTag := RunCMD("powershell Get-WmiObject win32_SystemEnclosure | select serialnumber | ft -HideTableHeaders")
     PCTag := RegExReplace(PCTag, "\r\n", "")
     PCTag := RegExReplace(PCTag, " ", "")
     return PCtag
@@ -164,33 +164,84 @@ getServiceTagPC()
 
 getProcessorInfo()
 {
-    processorInfo := StdOutToVar("powershell Get-WmiObject Win32_Processor | select Name | ft -HideTableHeaders")
+    processorInfo := RunCMD("powershell Get-WmiObject Win32_Processor | select Name | ft -HideTableHeaders")
     processorInfo := RegExReplace(processorInfo, "\R+\R", "`r`n")
     return processorInfo
 }
 
 getRamInfo()
 {
-    ramInfo := StdOutToVar("powershell Get-WmiObject Win32_PhysicalMemory | Select-Object SerialNumber, Capacity, Configuredclockspeed | Format-List")
+    ramInfo := RunCMD("powershell Get-WmiObject Win32_PhysicalMemory | Select-Object SerialNumber, Capacity, Configuredclockspeed | Format-List")
     ramInfo := RegExReplace(ramInfo, "\R+\R", "`r`n")
     return ramInfo
 }
 
 delAllConn()
 {
-    StdOutToVar("net use * /DELETE /Y")
+    RunCMD("net use * /DELETE /Y")
 }
 
 IpCheck()
 {
-    ipAddress := StdOutToVar("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '172.29.*' }")
+    ipAddress := RunCMD("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '172.29.*' }")
     ipAddress := RegExReplace(ipAddress, "\r\n", " ")
     return ipAddress
+}
+
+;Display Main Window
+DisplayMainWindow()
+{
+    Log("Loading main window")
+    ;Top Menu
+    LogMenu := Menu()
+    LogMenu.Add("Open WIM Log", Menu)
+    TopMenu := MenuBar()
+    TopMenu.Add "&Log", LogMenu
+    ;Main Menu
+    MainMenu := Gui(, "WIM Loader")
+    MainMenu.MenuBar := TopMenu
+    MainMenu.SetFont("s9", "Segoe UI")
+    ;Disk list
+    MainMenu.Add("ListBox", "x32 y16 w425 h134 vdiskList", ["...Loading list of disk..."])
+    ;Images list
+    MainMenu.Add("ListBox", "x32 y208 w425 h212 vimagesList", ["...Loading list of images..."])
+    ;Button Format
+    FormatBtn := MainMenu.Add("Button", "x288 y160 w80 h23 Disabled", "Format disk")
+    FormatBtn.OnEvent("Click", FormatDisk)
+    ;Show only USB
+    UsbShow := MainMenu.Add("CheckBox", "vUsbCheckbox", "Show USB drives")
+    UsbShow.OnEvent("Click", ShowDrivesUsb)
+    ;Refresh disks
+    MainMenu.Add("Button", "x376 y160 w80 h23", "Refresh Disks")
+    ;Format legacy or UEFI
+    MainMenu.Add("DropDownList", "x32 y459 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
+    ;IP Address
+    MainMenu.Add("Text", "x24 y504 w57 h23 +0x200", "IP Address:")
+    MainMenu.Add("Text", "x88 y504 w91 h23 +0x200 vip")
+    ;Renew IP
+    RenewIP := MainMenu.Add("Button", "x184 y504 w80 h23", "Renew IP")
+    RenewIP.OnEvent("Click", RenewAddressIP)
+
+    MainMenu.Show("w777 h558")
+}
+
+FormatDisk(*)
+{
+    MsgBox "Button click"
+}
+
+ShowDrivesUsb(*)
+{
+    MsgBox "Click"
+}
+
+RenewAddressIP(*)
+{
+    
 }
 
 ;=====================Script START=====================
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
-
-
-ExitApp
+DisplayMainWindow()
+;Gui Add, Text, x24 y504 w57 h23 +0x200 , IP Address:
