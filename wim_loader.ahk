@@ -156,24 +156,27 @@ GetFreeLetters(amount)
 
 getServiceTagPC()
 {
+    Log("Get PC tag")
     PCTag := RunCMD("powershell Get-WmiObject win32_SystemEnclosure | select serialnumber | ft -HideTableHeaders")
     PCTag := RegExReplace(PCTag, "\r\n", "")
     PCTag := RegExReplace(PCTag, " ", "")
-    return PCtag
+    LogToWindow("PC TAG: " . PCTag)
 }
 
 getProcessorInfo()
 {
+    Log("Get proccessor info")
     processorInfo := RunCMD("powershell Get-WmiObject Win32_Processor | select Name | ft -HideTableHeaders")
     processorInfo := RegExReplace(processorInfo, "\R+\R", "`r`n")
-    return processorInfo
+    LogToWindow("Processor " . processorInfo)
 }
 
 getRamInfo()
 {
+    Log("Get RAM info")
     ramInfo := RunCMD("powershell Get-WmiObject Win32_PhysicalMemory | Select-Object SerialNumber, Capacity, Configuredclockspeed | Format-List")
     ramInfo := RegExReplace(ramInfo, "\R+\R", "`r`n")
-    return ramInfo
+    LogToWindow("RAM: " . ramInfo)
 }
 
 delAllConn()
@@ -183,9 +186,57 @@ delAllConn()
 
 IpCheck()
 {
+    Log("Check for IP")
+    LogToWindow("Waiting for IP address...")
     ipAddress := RunCMD("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '172.29.*' }")
     ipAddress := RegExReplace(ipAddress, "\r\n", " ")
-    return ipAddress
+    ipField.Value := ipAddress
+    LogToWindow("IP: " . ipAddress)
+}
+
+LogToWindow(text)
+{
+	global textLog
+    timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
+	textLog := textLog . "`r`n" . timeNow " - " . text
+    LogWindow.Value := textLog
+	
+    ;SendMessage,0x115,7,0,Edit1,WIM Loader
+}
+
+;Listing disks
+listDisk()
+{
+    LogToWindow("Listing disks...")
+    Log("Loading disks")
+    diskListing.Delete()
+    diskListing.Add(["...Loading list of disks..."])
+    
+    diskList := disk := diskId := model := size := partitionType := diskShow := ""
+    isChecked := ControlGetChecked(UsbShow)
+    if (isChecked = 1)
+    {
+        diskList := RunCMD("powershell Get-Disk | Format-List")
+    } else {
+        diskList := RunCMD("powershell Get-Disk | Where-Object -FilterScript {$_.Bustype -notcontains 'usb'} | Format-List")
+    }
+    diskList := StrReplace(diskList, "`r`n")
+    diskListing.Delete()
+    pos := 0, data := []
+    While pos := RegExMatch(diskList, "UniqueId.*?IsBoot", &record, pos + 1)
+    {
+        data.Push(record[])
+    }
+    For , item in data
+    {
+        RegExMatch(item,"(Number.*?: )(.*)(Path)", &diskId)
+        RegExMatch(item,"(Model.*?: )(.*)(Serial)",&model)
+        RegExMatch(item,"(Size.*?: )(.*)(Allocated)",&size)
+        RegExMatch(item,"(PartitionStyle.*?: )(.*)(IsReadOnly)",&partitionType)
+        diskListing.Add(["No: " . diskId[2] . " == Model: " . model[2] . " == Size: " . size[2] . " == Partition Type: " . partitionType[2]])
+    }
+    Log("Loading disks DONE")
+    LogToWindow("Loading disks DONE")
 }
 
 ;Display Main Window
@@ -195,21 +246,24 @@ DisplayMainWindow()
     ;Top Menu
     LogMenu := Menu()
     LogMenu.Add("Open WIM Log", Menu)
+    LogMenu.Add("Open StdOut log", Menu)
     TopMenu := MenuBar()
-    TopMenu.Add "&Log", LogMenu
+    TopMenu.Add "&Logs", LogMenu
     ;Main Menu
     MainMenu := Gui(, "WIM Loader")
     MainMenu.MenuBar := TopMenu
     MainMenu.SetFont("s9", "Segoe UI")
     ;Disk list
-    MainMenu.Add("ListBox", "x32 y16 w425 h134 vdiskList", ["...Loading list of disk..."])
+    global diskListing
+    diskListing := MainMenu.Add("ListBox", "x32 y16 w425 h134", ["...Loading list of disk..."])
     ;Images list
     MainMenu.Add("ListBox", "x32 y208 w425 h212 vimagesList", ["...Loading list of images..."])
     ;Button Format
-    FormatBtn := MainMenu.Add("Button", "x288 y160 w80 h23 Disabled", "Format disk")
+    FormatBtn := MainMenu.Add("Button", "x288 y160 w80 h23", "Format disk")
     FormatBtn.OnEvent("Click", FormatDisk)
     ;Show only USB
-    UsbShow := MainMenu.Add("CheckBox", "vUsbCheckbox", "Show USB drives")
+    global UsbShow
+    UsbShow := MainMenu.Add("CheckBox",, "Show USB drives")
     UsbShow.OnEvent("Click", ShowDrivesUsb)
     ;Refresh disks
     MainMenu.Add("Button", "x376 y160 w80 h23", "Refresh Disks")
@@ -217,12 +271,28 @@ DisplayMainWindow()
     MainMenu.Add("DropDownList", "x32 y459 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
     ;IP Address
     MainMenu.Add("Text", "x24 y504 w57 h23 +0x200", "IP Address:")
-    MainMenu.Add("Text", "x88 y504 w91 h23 +0x200 vip")
+    global ipField
+    ipField := MainMenu.Add("Text", "x88 y504 w91 h23 +0x200")
     ;Renew IP
     RenewIP := MainMenu.Add("Button", "x184 y504 w80 h23", "Renew IP")
     RenewIP.OnEvent("Click", RenewAddressIP)
-
+    ;Version text
+    MainMenu.Add("Text", "x25 y531 w250 h23 +0x200", "Version " . version . " - Copyright Miasik Jakub")
+    ;Images path
+    MainMenu.Add("Text", "x120 y432 w200 h22 +0x200 vCurrImagePathText")
+    MainMenu.SetFont("s8", "Segoe UI")
+    ;Button refresh images
+    RefrImages := MainMenu.Add("Button", "x376 y432 w80 h30", "Refresh Images")
+    RefrImages.OnEvent("Click", RefreshImages)
+    ;Load manually
+    LoadMan := MainMenu.Add("Button", "x376 y464 w80 h23", "Load manually")
+    LoadMan.OnEvent("Click", LoadManually)
+    MainMenu.SetFont("s9", "Segoe UI")
+    ;Log window
+    global LogWindow
+    LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
     MainMenu.Show("w777 h558")
+    Log("Loading main window DONE")
 }
 
 FormatDisk(*)
@@ -232,16 +302,36 @@ FormatDisk(*)
 
 ShowDrivesUsb(*)
 {
-    MsgBox "Click"
+    listDisk()
 }
 
 RenewAddressIP(*)
 {
-    
+
+}
+
+RefreshImages(*)
+{
+
+}
+
+LoadManually(*)
+{
+
 }
 
 ;=====================Script START=====================
+version := "1.0.0.3"
+textLog := ""
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
 DisplayMainWindow()
-;Gui Add, Text, x24 y504 w57 h23 +0x200 , IP Address:
+;Get PCTAG info
+tagOfPC := getServiceTagPC()
+;Get hardware info
+getProcessorInfo()
+getRamInfo()
+;Get all disks
+listDisk()
+IpCheck()
+defLocLett := GetFirstFreeLetter()
