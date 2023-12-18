@@ -1,3 +1,4 @@
+#Requires AutoHotkey v2.0
 #SingleInstance Force
 SendMode "Input"
 SetWorkingDir A_ScriptDir
@@ -5,6 +6,12 @@ SetWorkingDir A_ScriptDir
 ;=====================Timers=====================
 ;Timer for buttons on/off
 ;SetTimer ButtonsControl, 300
+
+;=====================Globals=====================
+
+
+;=====================Defined variables=====================
+textLog := ""
 
 ;=====================Functions=====================
 
@@ -129,6 +136,7 @@ generUniqFileName()
 Log(text)
 {
     timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
+    textToLog := ""
     textToLog := timeNow . " " . text
     FileAppend textToLog . "`n", "wimlog_" . uniqFileName . ".txt"
 }
@@ -196,7 +204,7 @@ IpCheck()
 
 LogToWindow(text)
 {
-	global textLog
+    global textLog
     timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
 	textLog := textLog . "`r`n" . timeNow " - " . text
     LogWindow.Value := textLog
@@ -239,9 +247,39 @@ listDisk()
     LogToWindow("Loading disks DONE")
 }
 
+;Listing images from PCHW
+loadingImages(letter)
+{
+    Log("Loading images")
+    LogToWindow("Loading images...")
+    ;Adding colon to path
+    pathToSearch := letter . ":"
+	If (pathToSearch = "" )
+	{
+        Log("Path to images not found")
+        LogToWindow("Path to images not found")
+	} else
+	{
+        imagesList.Delete()
+        ;CurrImagePathText.Value := pathToImages
+		Loop Files pathToSearch . "\*.wim"
+		{
+		    imagesList.Add([A_LoopFileShortPath])
+		}
+
+	}
+
+}
+
 ;Display Main Window
 DisplayMainWindow()
 {
+    global diskListing
+    global imagesList
+    global UsbShow
+    global ipField
+    global LogWindow
+    global CurrImagePathText
     Log("Loading main window")
     ;Top Menu
     LogMenu := Menu()
@@ -254,15 +292,13 @@ DisplayMainWindow()
     MainMenu.MenuBar := TopMenu
     MainMenu.SetFont("s9", "Segoe UI")
     ;Disk list
-    global diskListing
-    diskListing := MainMenu.Add("ListBox", "x32 y16 w425 h134", ["...Loading list of disk..."])
+    diskListing := MainMenu.Add("ListBox", "x32 y16 w425 h134", [""])
     ;Images list
-    MainMenu.Add("ListBox", "x32 y208 w425 h212 vimagesList", ["...Loading list of images..."])
+    imagesList := MainMenu.Add("ListBox", "x32 y208 w425 h212", [""])
     ;Button Format
     FormatBtn := MainMenu.Add("Button", "x288 y160 w80 h23", "Format disk")
     FormatBtn.OnEvent("Click", FormatDisk)
     ;Show only USB
-    global UsbShow
     UsbShow := MainMenu.Add("CheckBox",, "Show USB drives")
     UsbShow.OnEvent("Click", ShowDrivesUsb)
     ;Refresh disks
@@ -271,7 +307,6 @@ DisplayMainWindow()
     MainMenu.Add("DropDownList", "x32 y459 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
     ;IP Address
     MainMenu.Add("Text", "x24 y504 w57 h23 +0x200", "IP Address:")
-    global ipField
     ipField := MainMenu.Add("Text", "x88 y504 w91 h23 +0x200")
     ;Renew IP
     RenewIP := MainMenu.Add("Button", "x184 y504 w80 h23", "Renew IP")
@@ -279,7 +314,7 @@ DisplayMainWindow()
     ;Version text
     MainMenu.Add("Text", "x25 y531 w250 h23 +0x200", "Version " . version . " - Copyright Miasik Jakub")
     ;Images path
-    MainMenu.Add("Text", "x120 y432 w200 h22 +0x200 vCurrImagePathText")
+    CurrImagePathText := MainMenu.Add("Text", "x120 y432 w200 h22 +0x200")
     MainMenu.SetFont("s8", "Segoe UI")
     ;Button refresh images
     RefrImages := MainMenu.Add("Button", "x376 y432 w80 h30", "Refresh Images")
@@ -289,7 +324,6 @@ DisplayMainWindow()
     LoadMan.OnEvent("Click", LoadManually)
     MainMenu.SetFont("s9", "Segoe UI")
     ;Log window
-    global LogWindow
     LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
     MainMenu.Show("w777 h558")
     Log("Loading main window DONE")
@@ -321,17 +355,28 @@ LoadManually(*)
 }
 
 ;=====================Script START=====================
-version := "1.0.0.3"
-textLog := ""
+defaLocImages := "\\pchw\images"
+defaLocImagesUser := "cos\images"
+defaLocImagesPass := "123edc!@#EDC"
+updateLocFile := "\sources\WimLoader.exe"
+version := "2.0.0"
+
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
 DisplayMainWindow()
 ;Get PCTAG info
-tagOfPC := getServiceTagPC()
+getServiceTagPC()
 ;Get hardware info
 getProcessorInfo()
 getRamInfo()
 ;Get all disks
 listDisk()
+;IP checking
 IpCheck()
+;Get free letter to mount default location for images
 defLocLett := GetFirstFreeLetter()
+;Connect to default location and assign letter
+LogToWindow("Connecting to " . defaLocImages)
+Log("Connecting to " . defaLocImages)
+defaultLoc := RunCMD("net use " . defLocLett . ": " . defaLocImages . " /user:" . defaLocImagesUser . " " . defaLocImagesPass . " /p:no")
+loadingImages(defLocLett)
