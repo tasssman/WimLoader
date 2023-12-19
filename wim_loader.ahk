@@ -252,6 +252,7 @@ loadingImages(letter)
 {
     Log("Loading images")
     LogToWindow("Loading images...")
+    imagesList.Add(["...Loading list of images..."])
     ;Adding colon to path
     pathToSearch := letter . ":"
 	If (pathToSearch = "" )
@@ -261,14 +262,13 @@ loadingImages(letter)
 	} else
 	{
         imagesList.Delete()
-        ;CurrImagePathText.Value := pathToImages
 		Loop Files pathToSearch . "\*.wim"
 		{
 		    imagesList.Add([A_LoopFileShortPath])
 		}
 
 	}
-
+    LogToWindow("Loading images... DONE")
 }
 
 ;Display Main Window
@@ -279,7 +279,7 @@ DisplayMainWindow()
     global UsbShow
     global ipField
     global LogWindow
-    global CurrImagePathText
+    global CurrImagesPathText
     Log("Loading main window")
     ;Top Menu
     LogMenu := Menu()
@@ -314,7 +314,7 @@ DisplayMainWindow()
     ;Version text
     MainMenu.Add("Text", "x25 y531 w250 h23 +0x200", "Version " . version . " - Copyright Miasik Jakub")
     ;Images path
-    CurrImagePathText := MainMenu.Add("Text", "x120 y432 w200 h22 +0x200")
+    CurrImagesPathText := MainMenu.Add("Text", "x32 y432 w200 h22 +0x200")
     MainMenu.SetFont("s8", "Segoe UI")
     ;Button refresh images
     RefrImages := MainMenu.Add("Button", "x376 y432 w80 h30", "Refresh Images")
@@ -376,6 +376,7 @@ IpCheck()
 ;Get free letter to mount default location for images
 defLocLett := GetFirstFreeLetter()
 ;Connect to default location and assign letter
+CurrImagesPathText.Value := "Path to images: " . defaLocImages
 LogToWindow("Connecting to " . defaLocImages)
 Log("Connecting to " . defaLocImages)
 defaultLoc := RunCMD("net use " . defLocLett . ": " . defaLocImages . " /user:" . defaLocImagesUser . " " . defaLocImagesPass . " /p:no")
