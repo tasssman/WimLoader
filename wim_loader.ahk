@@ -12,6 +12,7 @@ SetWorkingDir A_ScriptDir
 
 ;=====================Defined variables=====================
 textLog := ""
+verLatestToDisp := ""
 
 ;=====================Functions=====================
 
@@ -280,6 +281,7 @@ DisplayMainWindow()
     global ipField
     global LogWindow
     global CurrImagesPathText
+    global UpdateButton
     Log("Loading main window")
     ;Top Menu
     LogMenu := Menu()
@@ -313,6 +315,8 @@ DisplayMainWindow()
     RenewIP.OnEvent("Click", RenewAddressIP)
     ;Version text
     MainMenu.Add("Text", "x25 y531 w250 h23 +0x200", "Version " . version . " - Copyright Miasik Jakub")
+    UpdateButton := MainMenu.Add("Button", "x300 y531 w150 h25")
+    ControlHide UpdateButton
     ;Images path
     CurrImagesPathText := MainMenu.Add("Text", "x32 y432 w200 h22 +0x200")
     MainMenu.SetFont("s8", "Segoe UI")
@@ -358,7 +362,7 @@ LoadManually(*)
 defaLocImages := "\\pchw\images"
 defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
-updateLocFile := "\sources\WimLoader.exe"
+updateFolLoc := "\sources\"
 version := "2.0.0"
 
 ;Generate unique name of file
@@ -381,3 +385,30 @@ LogToWindow("Connecting to " . defaLocImages)
 Log("Connecting to " . defaLocImages)
 defaultLoc := RunCMD("net use " . defLocLett . ": " . defaLocImages . " /user:" . defaLocImagesUser . " " . defaLocImagesPass . " /p:no")
 loadingImages(defLocLett)
+;Check for updates
+LogToWindow("Checking for updates...")
+Log("Checking for update")
+if (defLocLett . ":" . updateFolLoc = "")
+{
+    Log("Path to update location not found")
+    LogToWindow("Path to update location not found")
+} else
+{
+    Loop Files defLocLett . ":" . updateFolLoc . "*latest.*"
+    {
+        RegExMatch(A_LoopFileShortPath, "[0-9].*[0-9]", &verUpdateFile)
+        verLatestFile := StrReplace(verUpdateFile[], "_", "")
+        verLatestToDisp := StrReplace(verUpdateFile[], "_", ".")
+        verCurrent := StrReplace(version, ".", "")
+    }
+    if (verLatestFile > verCurrent)
+    {
+        LogToWindow("Update found ver. " . verLatestToDisp)
+        
+        UpdateButton.Text :=  "Update to " . verLatestToDisp
+        ControlShow UpdateButton
+
+    } else {
+        LogToWindow("Update not found.")
+    }
+}
