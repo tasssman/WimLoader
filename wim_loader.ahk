@@ -333,9 +333,49 @@ DisplayMainWindow()
     Log("Loading main window DONE")
 }
 
+ChckIfDiskSelect()
+{
+    SelDisk := diskListing.Text
+    if (SelDisk != "")
+    {
+        RegExMatch(SelDisk, "No: ([0-9]{1,2})", &diskNumber)
+        return diskNumber[1]
+    } else {
+        return ""
+    }
+}
+
 FormatDisk(*)
 {
-    MsgBox "Button click"
+    diskId := ChckForSelectDisk()
+    if (diskId = "")
+    {
+        MsgBox "Select disk to format"
+    } else {
+        LogToWindow("Formating disk ID: " diskId)
+        diskpartText := "
+        (
+            select disk disk_number
+            clean
+            convert gpt
+            create partition primary
+            format quick fs=ntfs
+            assign
+            exit
+        )"
+        diskListing.Delete()
+        diskListing.Add(["Formating disk " . diskId . " Please wait..."])
+        Sleep 100
+        formatToFile := StrReplace(diskpartText, "disk_number", diskId)
+        if fileExist("x:\format_disk.txt")
+        {
+            FileDelete "x:\format_disk.txt"
+        }
+        FileAppend formatToFile, "x:\format_disk.txt"
+        ;Run "diskpart /s x:\format_disk.txt",,"Max"
+        formatDisk := RunCMD("diskpart /s x:\format_disk.txt")
+        listDisk()
+    }
 }
 
 ShowDrivesUsb(*)
