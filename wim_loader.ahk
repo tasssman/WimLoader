@@ -421,8 +421,11 @@ tag := getServiceTagPC()
 LogToWindow(tag)
 ;Get hardware info
 LogToWindow("Getting processor and RAM")
+LogToWindow("Getting processor and RAM")
 processor := getProcessorInfo()
 ram := getRamInfo()
+LogToWindow(processor)
+LogToWindow(ram)
 LogToWindow(processor)
 LogToWindow(ram)
 
