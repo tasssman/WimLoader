@@ -409,11 +409,26 @@ version := "2.0.0"
 uniqFileName := generUniqFileName()
 DisplayMainWindow()
 ;Get PCTAG info
+<<<<<<< HEAD
 getServiceTagPC()
 ;Get hardware info
 getProcessorInfo()
 getRamInfo()
 ;Get all disks
+=======
+LogToWindow("Getting PC tag...")
+tag := getServiceTagPC()
+LogToWindow(tag)
+;Get hardware info
+LogToWindow("Getting processor and RAM")
+processor := getProcessorInfo()
+ram := getRamInfo()
+LogToWindow(processor)
+LogToWindow(ram)
+
+;Load disk to main window and display them
+LogToWindow("Listing disk...")
+>>>>>>> 224323c (Closes #75)
 listDisk()
 ;IP checking
 IpCheck()
