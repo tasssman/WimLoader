@@ -333,7 +333,7 @@ DisplayMainWindow()
     Log("Loading main window DONE")
 }
 
-ChckIfDiskSelect()
+ChckForSelectDisk()
 {
     SelDisk := diskListing.Text
     if (SelDisk != "")
