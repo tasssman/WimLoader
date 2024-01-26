@@ -203,6 +203,14 @@ IpCheck()
     LogToWindow("IP: " . ipAddress)
 }
 
+RenewIPAdd()
+{
+    LogToWindow("Renewing IP...")
+    ipField.Value := ""
+    ipAddress := RunCMD("powershell ipconfig /renew")
+    IpCheck()
+}
+
 LogToWindow(text)
 {
     global textLog
@@ -385,7 +393,7 @@ ShowDrivesUsb(*)
 
 RenewAddressIP(*)
 {
-
+    RenewIPAdd()
 }
 
 RefreshImages(*)
