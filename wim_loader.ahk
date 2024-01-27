@@ -261,6 +261,8 @@ loadingImages(letter)
 {
     Log("Loading images")
     LogToWindow("Loading images...")
+    imagesList.Delete()
+    Sleep 200
     imagesList.Add(["...Loading list of images..."])
     ;Adding colon to path
     pathToSearch := letter . ":"
@@ -398,7 +400,7 @@ RenewAddressIP(*)
 
 RefreshImages(*)
 {
-
+    loadingImages(defLocLett)
 }
 
 LoadManually(*)
