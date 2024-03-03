@@ -308,33 +308,33 @@ DisplayMainWindow()
     ;Images list
     imagesList := MainMenu.Add("ListBox", "x32 y208 w425 h212", [""])
     ;Button Format
-    FormatBtn := MainMenu.Add("Button", "x288 y160 w80 h23", "Format disk")
+    FormatBtn := MainMenu.Add("Button", "x288 y144 w80 h23", "Format disk")
     FormatBtn.OnEvent("Click", FormatDisk)
     ;Show only USB
-    UsbShow := MainMenu.Add("CheckBox",, "Show USB drives")
+    UsbShow := MainMenu.Add("CheckBox", "x32 y144 w110 h15", "Show USB drives")
     UsbShow.OnEvent("Click", ShowDrivesUsb)
     ;Refresh disks
-    MainMenu.Add("Button", "x376 y160 w80 h23", "Refresh Disks")
+    MainMenu.Add("Button", "x376 y144 w80 h23", "Refresh Disks")
     ;Format legacy or UEFI
     MainMenu.Add("DropDownList", "x32 y459 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
     ;IP Address
-    MainMenu.Add("Text", "x24 y504 w57 h23 +0x200", "IP Address:")
+    MainMenu.Add("Text", "x32 y504 w57 h23 +0x200", "IP Address:")
     ipField := MainMenu.Add("Text", "x88 y504 w91 h23 +0x200")
     ;Renew IP
     RenewIP := MainMenu.Add("Button", "x184 y504 w80 h23", "Renew IP")
     RenewIP.OnEvent("Click", RenewAddressIP)
     ;Version text
-    MainMenu.Add("Text", "x25 y531 w250 h23 +0x200", "Version " . version . " - Copyright Miasik Jakub")
+    MainMenu.Add("Text", "x32 y531 w250 h23 +0x200", "Version " . version . " - Copyright Miasik Jakub")
     UpdateButton := MainMenu.Add("Button", "x300 y531 w150 h25")
     ControlHide UpdateButton
     ;Images path
     CurrImagesPathText := MainMenu.Add("Text", "x32 y432 w200 h22 +0x200")
     MainMenu.SetFont("s8", "Segoe UI")
     ;Button refresh images
-    RefrImages := MainMenu.Add("Button", "x376 y432 w80 h30", "Refresh Images")
+    RefrImages := MainMenu.Add("Button", "x376 y416 w80 h30", "Refresh Images")
     RefrImages.OnEvent("Click", RefreshImages)
     ;Load manually
-    LoadMan := MainMenu.Add("Button", "x376 y464 w80 h23", "Load manually")
+    LoadMan := MainMenu.Add("Button", "x376 y448 w80 h23", "Load manually")
     LoadMan.OnEvent("Click", LoadManually)
     MainMenu.SetFont("s9", "Segoe UI")
     ;Log window
