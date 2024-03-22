@@ -18,7 +18,6 @@ Construct() {
 	ButtonFormatdisk := myGui.Add("Button", "x288 y144 w80 h23", "Format disk")
 	CheckBox1 := myGui.Add("CheckBox", "x32 y144 w110 h15", "Show USB drives")
 	ButtonRefreshDisks := myGui.Add("Button", "x376 y144 w80 h23", "Refresh Disks")
-	;UEFI or LEGACY
 	DropDownList1 := myGui.Add("DropDownList", "x32 y434 w100", ["UEFI Format", "LEGACY Format"])
 	myGui.Add("Text", "x32 y504 w57 h23", "IP Address:")
 	myGui.Add("Text", "x88 y504 w91 h23")
@@ -28,6 +27,7 @@ Construct() {
 	ButtonRefreshImages := myGui.Add("Button", "x376 y410 w80 h30", "Refresh Images")
 	ButtonLoadmanually := myGui.Add("Button", "x376 y464 w80 h23", "Load manually")
 	Edit1 := myGui.Add("Edit", "x464 y16 w305 h536 +Multi +ReadOnly")
+	ButtonInstallImage := myGui.Add("Button", "x32 y464 w99 h28", "Install Image")
 	ButtonFormatdisk.OnEvent("Click", OnEventHandler)
 	CheckBox1.OnEvent("Click", OnEventHandler)
 	ButtonRefreshDisks.OnEvent("Click", OnEventHandler)
@@ -36,6 +36,7 @@ Construct() {
 	ButtonRefreshImages.OnEvent("Click", OnEventHandler)
 	ButtonLoadmanually.OnEvent("Click", OnEventHandler)
 	Edit1.OnEvent("Change", OnEventHandler)
+	ButtonInstallImage.OnEvent("Click", OnEventHandler)
 	myGui.OnEvent('Close', (*) => ExitApp())
 	myGui.Title := "WIM Loader (Clone)"
 	myGui.Show("w777 h558")
@@ -57,7 +58,8 @@ Construct() {
 		. "ButtonRenewIP => " ButtonRenewIP.Text "`n" 
 		. "ButtonRefreshImages => " ButtonRefreshImages.Text "`n" 
 		. "ButtonLoadmanually => " ButtonLoadmanually.Text "`n" 
-		. "Edit1 => " Edit1.Value "`n", 77, 277)
+		. "Edit1 => " Edit1.Value "`n" 
+		. "ButtonInstallImage => " ButtonInstallImage.Text "`n", 77, 277)
 		SetTimer () => ToolTip(), -3000 ; tooltip timer
 	}
 	

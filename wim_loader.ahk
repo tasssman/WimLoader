@@ -292,6 +292,7 @@ DisplayMainWindow()
     global LogWindow
     global CurrImagesPathText
     global UpdateButton
+    global UefiLegacyControl
     Log("Loading main window")
     ;Top Menu
     LogMenu := Menu()
@@ -316,7 +317,10 @@ DisplayMainWindow()
     ;Refresh disks
     MainMenu.Add("Button", "x376 y144 w80 h23", "Refresh Disks")
     ;Format legacy or UEFI
-    MainMenu.Add("DropDownList", "x32 y434 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
+    UefiLegacyControl := MainMenu.Add("DropDownList", "x32 y434 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
+    ;Install image
+    InstallImageButton := MainMenu.Add("Button", "x32 y464 w99 h28", "Install Image")
+    InstallImageButton.OnEvent("Click", InstallImage)
     ;IP Address
     MainMenu.Add("Text", "x32 y504 w57 h23 +0x200", "IP Address:")
     ipField := MainMenu.Add("Text", "x88 y504 w91 h23 +0x200")
@@ -406,6 +410,26 @@ RefreshImages(*)
 LoadManually(*)
 {
 
+}
+
+InstallImage(*)
+{
+    Log("Start install procsess")
+    LogToWindow("Starting loading image proccess...")
+    diskToInstall := ChckForSelectDisk()
+    if (diskToInstall = "")
+    {
+        MsgBox "Select disk to install image"
+        return
+    }
+    if (imagesList.Text = "")
+    {
+        MsgBox "Select image to install"
+        return
+    } else {
+        imageToInstall := imagesList.Text
+    }
+    MsgBox UefiLegacyControl.Text
 }
 
 ;=====================Script START=====================
