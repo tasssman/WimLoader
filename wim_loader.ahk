@@ -9,7 +9,6 @@ SetWorkingDir A_ScriptDir
 
 ;=====================Globals=====================
 
-
 ;=====================Defined variables=====================
 textLog := ""
 verLatestToDisp := ""
@@ -292,6 +291,7 @@ DisplayMainWindow()
     global LogWindow
     global CurrImagesPathText
     global UpdateButton
+    global FormatBtn
     global UefiLegacyControl
     Log("Loading main window")
     ;Top Menu
@@ -366,6 +366,7 @@ FormatDisk(*)
     {
         MsgBox "Select disk to format"
     } else {
+        FormatBtn.Opt("Disabled")
         LogToWindow("Formating disk ID: " diskId)
         diskpartText := "
         (
@@ -388,7 +389,9 @@ FormatDisk(*)
         FileAppend formatToFile, "x:\format_disk.txt"
         ;Run "diskpart /s x:\format_disk.txt",,"Max"
         formatDisk := RunCMD("diskpart /s x:\format_disk.txt")
+        LogToWindow("Formating disk DONE")
         listDisk()
+        FormatBtn.Enabled := true
     }
 }
 
@@ -429,7 +432,67 @@ InstallImage(*)
     } else {
         imageToInstall := imagesList.Text
     }
-    MsgBox UefiLegacyControl.Text
+    lettersInstall := GetFreeLetters(2)
+    if(UefiLegacyControl.Value = 1)
+    {
+        Log("Loaded UEFI diskpart format")
+        LogToWindow("Formating to UEFI...")
+        uefi_partitions := 
+        (
+            "select disk " diskToInstall "
+            clean
+            convert gpt
+            rem == 1. System partition =========================
+            create partition efi size=100
+            format quick fs=fat32 label=`"System`"
+            assign letter=" lettersInstall[1] "
+            rem == 2. Microsoft Reserved (MSR) partition =======
+            create partition msr size=16
+            rem == 3. Windows partition ========================
+            create partition primary
+            format quick fs=ntfs label=`"Windows`"
+            assign letter=" lettersInstall[2] "
+            exit"
+        )
+        If fileExist("x:\uefi_format.txt")
+        {
+            FileDelete "x:\uefi_format.txt"
+        }
+        FileAppend uefi_partitions, "x:\uefi_format.txt"
+        formatUefi := RunCMD("diskpart /s x:\uefi_format.txt")
+        LogToWindow("Done")
+    } else if(UefiLegacyControl.Value = 2) {
+        Log("Loaded LEGACY diskpart format")
+        LogToWindow("Formating to LEGACY...")
+        legacy_partitions :=
+        (
+            "select disk disk_number
+            clean
+            rem == 1. System partition =========================
+            create partition efi size=100
+            format quick fs=fat32 label=`"System`"
+            assign letter=" lettersInstall[1] "
+            rem == 2. Microsoft Reserved (MSR) partition =======
+            create partition msr size=16
+            rem == 3. Windows partition ========================
+            create partition primary
+            format quick fs=ntfs label=`"Windows`"
+            assign letter=" lettersInstall[2] "
+            exit"
+        )
+        If fileExist("x:\legacy_format.txt")
+        {
+            FileDelete "x:\legacy_format.txt"
+        }
+        FileAppend legacy_partitions, "x:\legacy_format.txt"
+        formatUefi := RunCMD("diskpart /s x:\legacy_format.txt")
+        LogToWindow("Done")
+    }
+    LogToWindow("Image loading...")
+    RunWait "dism /apply-image /imagefile:" imagesList.Text " /index:1 /applydir:" lettersInstall[2] ":\ /NoRpFix",,"Max"
+    RunWait lettersInstall[2] ":\Windows\System32\bcdboot " lettersInstall[2] ":\Windows /s " lettersInstall[1] ":"
+    Sleep 5000
+    RunCMD("wpeutil Reboot")
 }
 
 ;=====================Script START=====================
