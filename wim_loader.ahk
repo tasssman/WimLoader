@@ -296,7 +296,7 @@ DisplayMainWindow()
     Log("Loading main window")
     ;Top Menu
     LogMenu := Menu()
-    LogMenu.Add("Open WIM Log", Menu)
+    LogMenu.Add("Open WIM log", WimLog)
     LogMenu.Add("Open StdOut log", Menu)
     TopMenu := MenuBar()
     TopMenu.Add "&Logs", LogMenu
@@ -345,6 +345,11 @@ DisplayMainWindow()
     LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
     MainMenu.Show("w777 h558")
     Log("Loading main window DONE")
+}
+
+WimLog(Item,*)
+{
+    Run "notepad.exe wimlog_" . uniqFileName . "_StdOutput.txt"
 }
 
 ChckForSelectDisk()
@@ -492,6 +497,8 @@ InstallImage(*)
     RunWait "dism /apply-image /imagefile:" imagesList.Text " /index:1 /applydir:" lettersInstall[2] ":\ /NoRpFix",,"Max"
     RunWait lettersInstall[2] ":\Windows\System32\bcdboot " lettersInstall[2] ":\Windows /s " lettersInstall[1] ":"
     Sleep 5000
+    LogToWindow("DONE.")
+    LogToWindow("Rebooting...")
     RunCMD("wpeutil Reboot")
 }
 
