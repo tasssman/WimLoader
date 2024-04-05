@@ -331,6 +331,7 @@ DisplayMainWindow()
     MainMenu.Add("Text", "x32 y531 w250 h23 +0x200", "Version " . version . " - Copyright Miasik Jakub")
     UpdateButton := MainMenu.Add("Button", "x300 y531 w150 h25")
     ControlHide UpdateButton
+    UpdateButton.OnEvent("Click", UpdateApp)
     ;Images path
     CurrImagesPathText := MainMenu.Add("Text", "x32 y410 w200 h22 +0x200")
     MainMenu.SetFont("s8", "Segoe UI")
@@ -345,6 +346,12 @@ DisplayMainWindow()
     LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
     MainMenu.Show("w777 h558")
     Log("Loading main window DONE")
+    MainMenu.OnEvent("Close", endApp)
+}
+
+endApp(*)
+{
+    delAllConn()
 }
 
 WimLog(Item,*)
@@ -418,6 +425,14 @@ RefreshImages(*)
 LoadManually(*)
 {
 
+}
+
+UpdateApp(*)
+{
+    LogToWindow("Updating app...")
+    delAllConn()
+    Run "wimautoupdate.exe"
+    ExitApp
 }
 
 InstallImage(*)
@@ -538,6 +553,7 @@ if (defLocLett . ":" . updateFolLoc = "")
     LogToWindow("Path to update location not found")
 } else
 {
+    RunCMD("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
     Loop Files defLocLett . ":" . updateFolLoc . "*latest.*"
     {
         RegExMatch(A_LoopFileShortPath, "[0-9].*[0-9]", &verUpdateFile)
