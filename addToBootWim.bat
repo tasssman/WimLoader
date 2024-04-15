@@ -1,14 +1,15 @@
+set /p WinPePath=Wpisz sciezke do WinPE:
 echo Mounting
-dism /Mount-image /imagefile:C:\WinPE_amd64\media\sources\boot.wim /Index:1 /MountDir:C:\WinPE_amd64\mount\
+dism /Mount-image /imagefile:%WinPePath%\media\sources\boot.wim /Index:1 /MountDir:%WinPePath%\mount\
 
 echo Copy files
-xcopy WimLoader.exe C:\WinPE_amd64\mount\windows\system32\ /y
+xcopy WimLoader.exe %WinPePath%\mount\windows\system32\ /y
 
 echo Unmouting
-Dism /Unmount-Image /MountDir:C:\WinPE_amd64\mount /commit
+Dism /Unmount-Image /MountDir:%WinPePath%\mount /commit
 
 echo
-echo To Create ISO in Deployment Envroiment run: MakeWinPEMedia /ISO C:\WinPE_amd64 C:\WinPE_amd64\WinPE_amd64.iso
+echo To Create ISO in Deployment Envroiment run: MakeWinPEMedia /ISO %WinPePath% %WinPePath%\WinPE_amd64.iso
 echo 
 
 pause

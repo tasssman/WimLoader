@@ -1,6 +1,7 @@
-#SingleInstance, Force
-SendMode Input
-SetWorkingDir, %A_ScriptDir%
+#SingleInstance Force
+SendMode "Input"
+SetWorkingDir A_ScriptDir
+textLog := ""
 
 ;Reading output from command
 RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow := 1)
@@ -99,109 +100,74 @@ RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow :
     Return RTrim(sOutput, CRLF)
 }
 
-CreateMainWindow()
+mainWindow()
 {
-	MainWindow := Gui()
-	MainWindow.SetFont("s9","Segoe UI")
-	
-}
-
-
-
-
-
-
-
-
-
-MainWindow()
-{
-	Gui Main: New
-	Gui Font, s9, Segoe UI
-	Gui Add, Edit, x8 y56 w736 h312 +ReadOnly +Multi vLogWindow
-	Gui Add, Text, x320 y16 w124 h27 +0x200, Updating Wim Loader
-	Gui Show, w753 h385, Autoupdate
-	Return
-}
-
-
-;Get first free letter drive without comma
-GetFirstFreeLetter()
-{
-    freeDiskLetter := StdOutToVar("powershell ls function:[h-u]: -n | ?{ !(test-path $_) } | select -first 1")
-	freeDiskLetter := RegExReplace(freeDiskLetter, "\r\n", "")
-    freeDiskLetter := RegExReplace(freeDiskLetter, ":", "")
-	return freeDiskLetter
+    MainWindow := Gui(,"WIM AutoUpdate")
+    MainWindow.SetFont("s9","Segoe UI")
+    MainWindow.Add("Edit", "x8 y56 w736 h312 +ReadOnly +Multi vLogWindow")
+    MainWindow.Add("Text", "x320 y16 w124 h27 +0x200")
+    MainWindow.Show("w753 h385")
+    ;Logging to window
+    return MainWindow
 }
 
 LogToWindow(text)
 {
-	FormatTime, timeNow,,yyyy-MM-dd_HH:mm:ss
-	textLog = %textLog%`r`n%timeNow% - %text%
-	GuiControl, Main:, LogWindow, %textLog%
-    SendMessage,0x115,7,0,Edit1,Autoupdate
+    global textLog
+    timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
+    textLog := textLog . "`r`n" . timeNow " - " . text
+    wimMainWindow['LogWindow'].Value := textLog
+}
+
+GetFirstFreeLetter()
+{
+    freeDiskLetter := RunCMD("powershell ls function:[k-u]: -n | ?{ !(test-path $_) } | select -first 1")
+    freeDiskLetter := StrReplace(freeDiskLetter, "`r`n")
+    freeDiskLetter := StrReplace(freeDiskLetter, ":", "")
+	return {freeLetter:freeDiskLetter}
 }
 
 ;=====================Script START=====================
-;=====================Variables=====================
-;Variables
-global LogWindow
-global ProgressBar
-global Status
-global textLog
-defaLocUpdate = "\\pchw\winpe"
-defaLocSources = "\\pchw\images\sources"
-defaultUser = cos\images
-defaultPass = "123edc!@#EDC"
-updateFileUpdate = WimLoader.exe
+defaLocUpdate := "\\pchw\winpe"
+defaLocSources := "\\pchw\images\sources"
+defaultUser := "cos\images"
+defaultPass := "123edc!@#EDC"
+updateFileUpdate := "WimLoader.exe"
 disk := "c,d,e,f,g,h,i,j,k,l,m,o,p"
 
-MainWindow()
-
+wimMainWindow := mainWindow()
 LogToWindow("Searching fo USB drive with WinPE...")
-Loop, Parse, disk, `,
-{
-	usbLetter := A_LoopField
-	pathToBootWim := A_LoopField . ":\sources\boot.wim"
-	if FileExist(pathToBootWim)
-	{
-		Goto, Continue
-	}
-}
-;I USB drive not exist
-MsgBox 0x40010, USB not found, USB drive with WimLoader not found. Please copy manualy boot.wim from PCHW
-	Goto, Exiting
 
+loop parse disk, ","
+{
+    usbLetter := A_LoopField
+    pathToBootWim := A_LoopField . ":\sources\boot.wim"
+    if(FileExist(pathToBootWim))
+    {
+        Goto("Continue")
+    }
+}
 Continue:
+LogToWindow("Found " . pathToBootWim)
 LogToWindow("Mounting PCHW ...")
 mountLetter := GetFirstFreeLetter()
-commandMount = net use %mountLetter%: %defaLocUpdate% /user:%defaultUser% %defaultPass% /p:no
-LogToWindow(commandMount)
-commandMountReturn := StdOutToVar(commandMount)
-LogToWindow(commandMountReturn)
+RunCMD("net use " . mountLetter.freeLetter . ": " . defaLocUpdate . " /user:" . defaultUser . " " . defaultPass . " /p:no")
 LogToWindow("Deleting old boot.wim")
-FileDelete, %usbLetter%:\sources\boot.wim
+FileDelete(pathToBootWim)
 LogToWindow("Done")
 LogToWindow("Copy new boot.wim")
-commandCopyNewBootWim = robocopy %mountLetter%:\media\sources\ %usbLetter%:\sources boot.wim /eta /is
-commandCopyNewBootWimReturn := StdOutToVar(commandCopyNewBootWim)
-LogToWindow(commandCopyNewBootWimReturn)
-deleteMounts = net use %mountLetter%: /DELETE /Y
-deleteMountsReturn := StdOutToVar(deleteMounts)
-LogToWindow(deleteMountsReturn)
+RunWait("robocopy " . mountLetter.freeLetter . ":\media\sources\ " . usbLetter . ":\sources boot.wim /eta /is",, "Maximize")
+LogToWindow("Dismouting PCHW...")
+RunCMD("net use " . mountLetter.freeLetter . ": /DELETE /Y")
 LogToWindow("Runnig latest version")
+LogToWindow("Mounting PCHW ...")
 mountLetter := GetFirstFreeLetter()
-mountCommand = net use %mountLetter%: %defaLocSources% /user:%defaultUser% %defaultPass% /p:no
-mountCommandReturn := StdOutToVar(mountCommand)
-LogToWindow(mountCommandReturn)
-copyToXLoc := StdOutToVar("xcopy " mountLetter ":\WimLoader.exe x:\windows\system32 /y")
-
-Exiting:
+RunCMD("net use " . mountLetter.freeLetter . ": " . defaLocSources . " /user:" . defaultUser . " " . defaultPass . " /p:no")
+LogToWindow("Copy new version...")
+RunCMD("xcopy " . mountLetter.freeLetter . ":\WimLoader*latest.exe x:\windows\system32\wimloader.exe /y")
 LogToWindow("Unmouting all")
-commandUnmouting = net use %mountLetter%: /DELETE /Y
-StdOutToVar(commandUnmouting)
-LogToWindow("Done")
-LogToWindow("Exiting...")
-Sleep, 2000
-Run, WimLoader.exe
+RunCMD("net use " . mountLetter.freeLetter . ": /DELETE /Y")
+LogToWindow("Done. Exiting...")
+Sleep 2000
+Run("wimloader.exe")
 ExitApp

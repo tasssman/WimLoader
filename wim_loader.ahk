@@ -3,15 +3,16 @@
 SendMode "Input"
 SetWorkingDir A_ScriptDir
 
-;=====================Timers=====================
-;Timer for buttons on/off
-;SetTimer ButtonsControl, 300
-
 ;=====================Globals=====================
 
 ;=====================Defined variables=====================
 textLog := ""
 verLatestToDisp := ""
+defaLocImages := "\\pchw\images"
+defaLocImagesUser := "cos\images"
+defaLocImagesPass := "123edc!@#EDC"
+updateFolLoc := "\sources\"
+version := "2.0.1"
 
 ;=====================Functions=====================
 
@@ -518,12 +519,6 @@ InstallImage(*)
 }
 
 ;=====================Script START=====================
-defaLocImages := "\\pchw\images"
-defaLocImagesUser := "cos\images"
-defaLocImagesPass := "123edc!@#EDC"
-updateFolLoc := "\sources\"
-version := "2.0.0"
-
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
 DisplayMainWindow()
