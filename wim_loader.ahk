@@ -266,22 +266,22 @@ loadingImages(path)
     imagesList.Delete()
     Sleep 200
     imagesList.Add(["...Loading list of images..."])
-    ;Adding colon to path
-    pathToSearch := path . ":\"
-	If (pathToSearch = "" )
+    if (path = "" )
 	{
         Log("Path to images not found")
         LogToWindow("Path to images not found")
 	} else
 	{
         imagesList.Delete()
-		Loop Files pathToSearch . "*.wim"
+		Loop Files path . "*.wim"
 		{
 		    imagesList.Add([A_LoopFileShortPath])
 		}
 
 	}
     LogToWindow("Loading images... DONE")
+    LogToWindow("Current path set to: " . "path")
+    CurrImagesPathText.Value := "Path to images: " . path
 }
 
 ;Display Main Window
@@ -342,8 +342,8 @@ DisplayMainWindow()
     RefrImages := MainMenu.Add("Button", "x376 y416 w80 h30", "Refresh Images")
     RefrImages.OnEvent("Click", RefreshImages)
     ;Load manually
-    LoadMan := MainMenu.Add("Button", "x376 y448 w80 h23", "Load manually")
-    LoadMan.OnEvent("Click", LoadManually)
+    LoadMan := MainMenu.Add("Button", "x376 y448 w80 h23", "Change path")
+    LoadMan.OnEvent("Click", ChangePath)
     MainMenu.SetFont("s9", "Segoe UI")
     ;Log window
     LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
@@ -422,13 +422,20 @@ RenewAddressIP(*)
 
 RefreshImages(*)
 {
-    loadingImages(defLocLett)
+    loadingImages(defLocLett . ":\")
 }
 
-LoadManually(*)
+ChangePath(*)
 {
-    SelectedFolder := FileSelect()
-    MsgBox SelectedFolder
+    LogToWindow("Waiting for new path of WIMs...")
+    NewPath := InputBox("WIMs Path:", "Enter new path for WIMs")
+    If (NewPath.Result = "Cancel")
+    {
+        LogToWindow("Action was canceled")
+    } else {
+        LogToWindow("New path for WIMs is " . NewPath.Value)
+        loadingImages(NewPath.Value)
+    }
     return
 }
 
@@ -538,11 +545,10 @@ IpCheck()
 ;Get free letter to mount default location for images
 defLocLett := GetFirstFreeLetter()
 ;Connect to default location and assign letter
-CurrImagesPathText.Value := "Path to images: " . defaLocImages
 LogToWindow("Connecting to " . defaLocImages)
 Log("Connecting to " . defaLocImages)
 defaultLoc := RunCMD("net use " . defLocLett . ": " . defaLocImages . " /user:" . defaLocImagesUser . " " . defaLocImagesPass . " /p:no")
-loadingImages(defLocLett)
+loadingImages(defLocLett . ":\")
 ;Check for updates
 LogToWindow("Checking for updates...")
 Log("Checking for update")
