@@ -298,10 +298,12 @@ DisplayMainWindow()
     global UefiLegacyControl
     Log("Loading main window")
     ;Top Menu
+    FileMenu := Menu()
+    FileMenu.Add("Reload App", ReloadApp)
     LogMenu := Menu()
-    LogMenu.Add("Open WIM log", WimLog)
-    LogMenu.Add("Open StdOut log", Menu)
+    LogMenu.Add("Open StdOut log", StdOutLog)
     TopMenu := MenuBar()
+    TopMenu.Add "&File", FileMenu
     TopMenu.Add "&Logs", LogMenu
     ;Main Menu
     MainMenu := Gui(, "WIM Loader")
@@ -357,9 +359,15 @@ endApp(*)
     delAllConn()
 }
 
-WimLog(Item,*)
+StdOutLog(Item,*)
 {
     Run "notepad.exe wimlog_" . uniqFileName . "_StdOutput.txt"
+}
+
+ReloadApp(Item,*)
+{
+    Reload
+    return
 }
 
 ChckForSelectDisk()
