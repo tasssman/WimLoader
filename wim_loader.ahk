@@ -8,11 +8,13 @@ SetWorkingDir A_ScriptDir
 ;=====================Defined variables=====================
 textLog := ""
 verLatestToDisp := ""
+verLatestFile := ""
+verCurrent := ""
 defaLocImages := "\\pchw\images"
 defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
-version := "2.0.1"
+version := "2.0.0"
 
 ;=====================Functions=====================
 
@@ -257,7 +259,7 @@ listDisk()
 }
 
 ;Listing images from PCHW
-loadingImages(letter)
+loadingImages(path)
 {
     Log("Loading images")
     LogToWindow("Loading images...")
@@ -265,7 +267,7 @@ loadingImages(letter)
     Sleep 200
     imagesList.Add(["...Loading list of images..."])
     ;Adding colon to path
-    pathToSearch := letter . ":"
+    pathToSearch := path . ":\"
 	If (pathToSearch = "" )
 	{
         Log("Path to images not found")
@@ -273,7 +275,7 @@ loadingImages(letter)
 	} else
 	{
         imagesList.Delete()
-		Loop Files pathToSearch . "\*.wim"
+		Loop Files pathToSearch . "*.wim"
 		{
 		    imagesList.Add([A_LoopFileShortPath])
 		}
@@ -425,7 +427,9 @@ RefreshImages(*)
 
 LoadManually(*)
 {
-
+    SelectedFolder := FileSelect()
+    MsgBox SelectedFolder
+    return
 }
 
 UpdateApp(*)
@@ -549,20 +553,23 @@ if (defLocLett . ":" . updateFolLoc = "")
 } else
 {
     RunCMD("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
-    Loop Files defLocLett . ":" . updateFolLoc . "*latest.*"
+    if FileExist(defLocLett . ":" . updateFolLoc . "*latest.*")
     {
-        RegExMatch(A_LoopFileShortPath, "[0-9].*[0-9]", &verUpdateFile)
-        verLatestFile := StrReplace(verUpdateFile[], "_", "")
-        verLatestToDisp := StrReplace(verUpdateFile[], "_", ".")
-        verCurrent := StrReplace(version, ".", "")
-    }
-    if (verLatestFile > verCurrent)
-    {
-        LogToWindow("Update found ver. " . verLatestToDisp)
-        
-        UpdateButton.Text :=  "Update to " . verLatestToDisp
-        ControlShow UpdateButton
-
+        Loop Files defLocLett . ":" . updateFolLoc . "*latest.*"
+        {
+            RegExMatch(A_LoopFileShortPath, "[0-9].*[0-9]", &verUpdateFile)
+            verLatestFile := StrReplace(verUpdateFile[], "_", "")
+            verLatestToDisp := StrReplace(verUpdateFile[], "_", ".")
+            verCurrent := StrReplace(version, ".", "")
+        }
+        if (verLatestFile > verCurrent)
+        {
+            LogToWindow("Update found ver. " . verLatestToDisp)
+            
+            UpdateButton.Text :=  "Update to " . verLatestToDisp
+            ControlShow UpdateButton
+    
+        }
     } else {
         LogToWindow("Update not found.")
     }
