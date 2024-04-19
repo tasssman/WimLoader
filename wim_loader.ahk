@@ -320,7 +320,8 @@ DisplayMainWindow()
     UsbShow := MainMenu.Add("CheckBox", "x32 y144 w110 h15", "Show USB drives")
     UsbShow.OnEvent("Click", ShowDrivesUsb)
     ;Refresh disks
-    MainMenu.Add("Button", "x376 y144 w80 h23", "Refresh Disks")
+    RefreshDiskButt := MainMenu.Add("Button", "x376 y144 w80 h23", "Refresh Disks")
+    RefreshDiskButt.OnEvent("Click", RefreshDisks)
     ;Format legacy or UEFI
     UefiLegacyControl := MainMenu.Add("DropDownList", "x32 y434 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
     ;Install image
@@ -431,6 +432,11 @@ RenewAddressIP(*)
 RefreshImages(*)
 {
     loadingImages(defLocLett . ":\")
+}
+
+RefreshDisks(*)
+{
+    listDisk()
 }
 
 ChangePath(*)
