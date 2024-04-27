@@ -14,7 +14,7 @@ defaLocImages := "\\pchw\images"
 defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
-version := "2.0.0"
+version := "2.0.1"
 
 ;=====================Functions=====================
 
