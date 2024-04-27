@@ -570,8 +570,7 @@ if (defLocLett . ":" . updateFolLoc = "")
 {
     Log("Path to update location not found")
     LogToWindow("Path to update location not found")
-} else
-{
+} else {
     RunCMD("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
     if FileExist(defLocLett . ":" . updateFolLoc . "*latest.*")
     {
@@ -589,6 +588,8 @@ if (defLocLett . ":" . updateFolLoc = "")
             UpdateButton.Text :=  "Update to " . verLatestToDisp
             ControlShow UpdateButton
     
+        } else {
+            LogToWindow("Update not found.")
         }
     } else {
         LogToWindow("Update not found.")
