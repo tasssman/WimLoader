@@ -10,4 +10,3 @@
 
 ;WimAutoupdate
 ;RunWait "C:\Programy\AutoHotkey_v1\Compiler\Ahk2Exe.exe /in C:\Users\jmiasik\Documents\ProjektyGit\WimLoader\wim_autoupdate.ahk /out \\pchw\d$\images\sources\WimAutoUpdate.exe /base C:\Programy\AutoHotkey_v2\AutoHotkey64.exe"
-MsgBox "Done"
