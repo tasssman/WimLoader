@@ -4,9 +4,9 @@ SendMode "Input"
 SetWorkingDir A_ScriptDir
 
 ;=====================Globals=====================
-
+global iniPath
+global textLog := ""
 ;=====================Defined variables=====================
-textLog := ""
 verLatestToDisp := ""
 verLatestFile := ""
 verCurrent := ""
@@ -14,8 +14,8 @@ defaLocImages := "\\pchw\images"
 defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
+iniName := "wimloader.ini"
 version := "2.0.1"
-
 ;=====================Functions=====================
 
 RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow := 1)
@@ -129,6 +129,22 @@ RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow :
     Return RTrim(sOutput, CRLF)
 }
 
+LogToWindow(text)
+{
+    global textLog
+    timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
+	textLog := textLog . "`r`n" . timeNow " - " . text
+    LogWindow.Value := textLog
+}
+
+iniPathChk()
+{
+    bootLoc := RegRead("HKLM\SYSTEM\ControlSet001\Control", "PEBootRamdiskSourceDrive")
+    iniPath := bootLoc . iniName
+    ;LogToWindow("INI Path: " . iniPath)
+    return iniPath
+}
+
 generUniqFileName()
 {
     timeFile := FormatTime(,"yyyy_MM_dd_HH_mm_ss")
@@ -213,16 +229,6 @@ RenewIPAdd()
     IpCheck()
 }
 
-LogToWindow(text)
-{
-    global textLog
-    timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
-	textLog := textLog . "`r`n" . timeNow " - " . text
-    LogWindow.Value := textLog
-	
-    ;SendMessage,0x115,7,0,Edit1,WIM Loader
-}
-
 ;Listing disks
 listDisk()
 {
@@ -277,11 +283,25 @@ loadingImages(path)
 		{
 		    imagesList.Add([A_LoopFileShortPath])
 		}
+        if(ReadOptImageName() != "0")
+        {
+            LogToWindow("Auto selecting last image...")
+            listItems := ControlGetItems(imagesList)
+
+            for index, name in listItems
+            {
+                if InStr(name, ReadOptImageName())
+                {
+                    imagesList.Choose(index)
+                }
+            }
+        }
 
 	}
     LogToWindow("Loading images... DONE")
     LogToWindow("Current path set to: " . "path")
     CurrImagesPathText.Value := "Path to images: " . path
+    RegExMatch(path, ".*\\(.*)", &imageName)
 }
 
 ;Display Main Window
@@ -296,6 +316,7 @@ DisplayMainWindow()
     global UpdateButton
     global FormatBtn
     global UefiLegacyControl
+    global MainMenu
     Log("Loading main window")
     ;Top Menu
     FileMenu := Menu()
@@ -304,6 +325,7 @@ DisplayMainWindow()
     LogMenu.Add("Open StdOut log", StdOutLog)
     TopMenu := MenuBar()
     TopMenu.Add "&File", FileMenu
+    TopMenu.Add "&Options", OptionsMenu
     TopMenu.Add "&Logs", LogMenu
     ;Main Menu
     MainMenu := Gui(, "WIM Loader")
@@ -355,9 +377,50 @@ DisplayMainWindow()
     MainMenu.OnEvent("Close", endApp)
 }
 
+OptionsWindowFunc()
+{
+    global OptionsWindow
+    ;Create window
+    OptionsWindow := Gui(, "Options")
+    ;Last selected image will be selected on next startup
+    CheckBoxImAuSta := OptionsWindow.Add("CheckBox", "x16 y8 w337 h20", "select on startup last used image")
+    (ReadOptLastImage() = 1) ? CheckBoxImAuSta.Value := 1 : CheckBoxImAuSta.Value := 0
+    ;First disk will be selected
+    CheckBoxFirstDisk := OptionsWindow.Add("CheckBox", "x16 y+1 w337 h20", "select first disk on list")
+    (ReadOptFirstDisk() = 1) ? CheckBoxFirstDisk.Value := 1 : CheckBoxFirstDisk.Value := 0
+    ButtonClose := OptionsWindow.Add("Button", "x137 y320 w80 h23", "&Close")
+    OptionsWindow.Title := "Options"
+    OptionsWindow.Show("w361 h352")
+    MainMenu.Opt("+Disabled")
+    
+    ;Events
+    CheckBoxImAuSta.OnEvent("Click", ImageAutoSave)
+    CheckBoxFirstDisk.OnEvent("Click", FirstDiskSelect)
+	ButtonClose.OnEvent("Click", OptionsClose)
+    OptionsWindow.OnEvent("Close", OptionsClose)
+
+    ImageAutoSave(*)
+    {
+        IniWrite(CheckBoxImAuSta.Value, iniPath, "Options", "ImageLastLoad")
+    }
+
+    FirstDiskSelect(*)
+    {
+        IniWrite(CheckBoxFirstDisk.Value, iniPath, "Options", "SelectFirstDisk")
+    }
+
+    OptionsClose(*)
+    {
+        OptionsWindow.Destroy
+        MainMenu.Opt("-Disabled")
+        MainMenu.Show()
+    }
+}
+
 endApp(*)
 {
     delAllConn()
+    ExitApp
 }
 
 StdOutLog(Item,*)
@@ -369,6 +432,11 @@ ReloadApp(Item,*)
 {
     Reload
     return
+}
+
+OptionsMenu(item, *)
+{
+    OptionsWindowFunc()
 }
 
 ChckForSelectDisk()
@@ -477,6 +545,12 @@ InstallImage(*)
         return
     } else {
         imageToInstall := imagesList.Text
+        ;Save to ini when option is selected
+        
+        if(ReadOptLastImage = 1) {
+            RegExMatch(imagesList.Text, ".*\\(.*)", &imageSaveIni)
+            IniWrite(imageSaveIni[1], iniPath, "Data", "LastLoadImageName" )
+        }
     }
     lettersInstall := GetFreeLetters(2)
     if(UefiLegacyControl.Value = 1)
@@ -543,7 +617,24 @@ InstallImage(*)
     RunCMD("wpeutil Reboot")
 }
 
+ReadOptLastImage()
+{
+    return IniRead(iniPath, "Options", "ImageLastLoad", "0")
+}
+
+ReadOptImageName()
+{
+    return IniRead(iniPath, "Data", "LastLoadImageName", "0")
+}
+
+ReadOptFirstDisk()
+{
+    return FirstDiskOptions := IniRead(iniPath, "Options", "SelectFirstDisk", "0")
+}
 ;=====================Script START=====================
+
+;Get INI file
+iniPath := iniPathChk()
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
 DisplayMainWindow()
