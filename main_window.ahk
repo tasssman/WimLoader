@@ -27,7 +27,7 @@ Construct() {
 	ButtonRefreshImages := myGui.Add("Button", "x376 y410 w80 h30", "Refresh Images")
 	ButtonLoadmanually := myGui.Add("Button", "x376 y464 w80 h23", "Load manually")
 	Edit1 := myGui.Add("Edit", "x464 y16 w305 h536 +Multi +ReadOnly")
-	ButtonInstallImage := myGui.Add("Button", "x32 y464 w99 h28", "Install Image")
+	ButtonInstallImage := myGui.Add("Button", "Default x32 y464 w99 h28", "Install Image")
 	ButtonFormatdisk.OnEvent("Click", OnEventHandler)
 	CheckBox1.OnEvent("Click", OnEventHandler)
 	ButtonRefreshDisks.OnEvent("Click", OnEventHandler)

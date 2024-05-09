@@ -351,7 +351,7 @@ DisplayMainWindow()
     ;Format legacy or UEFI
     UefiLegacyControl := MainMenu.Add("DropDownList", "x32 y434 w100 vMode Choose1", ["UEFI Format","LEGACY Format"])
     ;Install image
-    InstallImageButton := MainMenu.Add("Button", "x32 y464 w99 h28", "Install Image")
+    InstallImageButton := MainMenu.Add("Button", "Default x32 y464 w99 h28", "Install Image")
     InstallImageButton.OnEvent("Click", InstallImage)
     ;IP Address
     MainMenu.Add("Text", "x32 y504 w57 h23 +0x200", "IP Address:")
