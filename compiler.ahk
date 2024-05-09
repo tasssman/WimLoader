@@ -6,7 +6,7 @@
 ;RunWait "C:\Programy\AutoHotkey_v1\Compiler\Ahk2Exe.exe /in C:\Users\jmiasik\Documents\ProjektyGit\WimLoader\wim_loader.ahk /out \\pchw\d$\images\sources\WimLoader_dev.exe /base C:\Programy\AutoHotkey_v2\AutoHotkey64.exe /compress 1"
 
 ;WimLoader
-;RunWait, D:\!PC\Dokumenty\winpe_v2\Compiler\Ahk2Exe.exe /in D:\!PC\Dokumenty\winpe_v2\wim_loader.ahk /out \\pchw\d$\images\sources\WimLoader_1_0_0_0.exe /base D:\!PC\Dokumenty\winpe_v2\Compiler\AutoHotkey.exe /bin D:\!PC\Dokumenty\winpe_v2\Compiler\Unicode64-bit.bin
+;RunWait "C:\Programy\AutoHotkey_v1\Compiler\Ahk2Exe.exe /in C:\Users\jmiasik\Documents\ProjektyGit\WimLoader\wim_loader.ahk /out \\pchw\d$\images\sources\WimLoader.exe /base C:\Programy\AutoHotkey_v2\AutoHotkey64.exe /compress 1"
 
 ;WimAutoupdate
 ;RunWait "C:\Programy\AutoHotkey_v1\Compiler\Ahk2Exe.exe /in C:\Users\jmiasik\Documents\ProjektyGit\WimLoader\wim_autoupdate.ahk /out \\pchw\d$\images\sources\WimAutoUpdate.exe /base C:\Programy\AutoHotkey_v2\AutoHotkey64.exe"
