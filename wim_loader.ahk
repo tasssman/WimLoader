@@ -260,6 +260,10 @@ listDisk()
         RegExMatch(item,"(PartitionStyle.*?: )(.*)(IsReadOnly)",&partitionType)
         diskListing.Add(["No: " . diskId[2] . " == Model: " . model[2] . " == Size: " . size[2] . " == Partition Type: " . partitionType[2]])
     }
+    if(ReadOptFirstDisk() = 1)
+        {
+            diskListing.Choose(1)
+        }
     Log("Loading disks DONE")
     LogToWindow("Loading disks DONE")
 }
