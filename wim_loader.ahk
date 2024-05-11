@@ -392,6 +392,10 @@ OptionsWindowFunc()
     ;First disk will be selected
     CheckBoxFirstDisk := OptionsWindow.Add("CheckBox", "x16 y+1 w337 h20", "select first disk on list")
     (ReadOptFirstDisk() = 1) ? CheckBoxFirstDisk.Value := 1 : CheckBoxFirstDisk.Value := 0
+    ;Fast start (no info about machine)
+    CheckBoxFastStart := OptionsWindow.Add("CheckBox", "x16 y+1 w337 h20", "fast start (no info about machine")
+    (ReadOptFastStart() = 1) ? CheckBoxFastStart.Value := 1 : CheckBoxFastStart.Value := 0
+
     ButtonClose := OptionsWindow.Add("Button", "x137 y320 w80 h23", "&Close")
     OptionsWindow.Title := "Options"
     OptionsWindow.Show("w361 h352")
@@ -400,6 +404,7 @@ OptionsWindowFunc()
     ;Events
     CheckBoxImAuSta.OnEvent("Click", ImageAutoSave)
     CheckBoxFirstDisk.OnEvent("Click", FirstDiskSelect)
+    CheckBoxFastStart.OnEvent("Click", FastStart)
 	ButtonClose.OnEvent("Click", OptionsClose)
     OptionsWindow.OnEvent("Close", OptionsClose)
 
@@ -411,6 +416,11 @@ OptionsWindowFunc()
     FirstDiskSelect(*)
     {
         IniWrite(CheckBoxFirstDisk.Value, iniPath, "Options", "SelectFirstDisk")
+    }
+
+    FastStart(*)
+    {
+        IniWrite(CheckBoxFastStart.Value, iniPath, "Options", "FastStart")
     }
 
     OptionsClose(*)
@@ -635,6 +645,11 @@ ReadOptFirstDisk()
 {
     return FirstDiskOptions := IniRead(iniPath, "Options", "SelectFirstDisk", "0")
 }
+
+ReadOptFastStart()
+{
+    return IniRead(iniPath, "Options", "FastStart", "0")
+}
 ;=====================Script START=====================
 
 ;Get INI file
@@ -642,11 +657,16 @@ iniPath := iniPathChk()
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
 DisplayMainWindow()
-;Get PCTAG info
-getServiceTagPC()
-;Get hardware info
-getProcessorInfo()
-getRamInfo()
+;Fast start without pc spec
+if(ReadOptFastStart() != 1)
+{
+    ;Get PCTAG info
+    getServiceTagPC()
+    ;Get hardware info
+    getProcessorInfo()
+    getRamInfo()
+}
+
 ;Get all disks
 listDisk()
 ;IP checking
