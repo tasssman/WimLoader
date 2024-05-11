@@ -402,25 +402,15 @@ OptionsWindowFunc()
     MainMenu.Opt("+Disabled")
     
     ;Events
-    CheckBoxImAuSta.OnEvent("Click", ImageAutoSave)
-    CheckBoxFirstDisk.OnEvent("Click", FirstDiskSelect)
-    CheckBoxFastStart.OnEvent("Click", FastStart)
+    CheckBoxImAuSta.OnEvent("Click", saveOptionValue.Bind(CheckBoxImAuSta,"Options", "ImageLastLoad"))
+    CheckBoxFirstDisk.OnEvent("Click", saveOptionValue.Bind(CheckBoxFirstDisk,"Options", "SelectFirstDisk"))
+    CheckBoxFastStart.OnEvent("Click", saveOptionValue.Bind(CheckBoxFastStart,"Options", "FastStart"))
 	ButtonClose.OnEvent("Click", OptionsClose)
     OptionsWindow.OnEvent("Close", OptionsClose)
 
-    ImageAutoSave(*)
+    saveOptionValue(nameCheckbox, iniSection, iniSectionKey,*)
     {
-        IniWrite(CheckBoxImAuSta.Value, iniPath, "Options", "ImageLastLoad")
-    }
-
-    FirstDiskSelect(*)
-    {
-        IniWrite(CheckBoxFirstDisk.Value, iniPath, "Options", "SelectFirstDisk")
-    }
-
-    FastStart(*)
-    {
-        IniWrite(CheckBoxFastStart.Value, iniPath, "Options", "FastStart")
+        IniWrite(nameCheckbox.Value, iniPath, iniSection, iniSectionKey)
     }
 
     OptionsClose(*)
