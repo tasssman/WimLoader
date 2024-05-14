@@ -151,23 +151,12 @@ generUniqFileName()
     return timeFile
 }
 
-;Logger
-Log(text)
-{
-    uniqFileName := ""
-    timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
-    textToLog := ""
-    textToLog := timeNow . " " . text
-    FileAppend textToLog . "`n", "wimlog_" . uniqFileName . ".txt"
-}
-
 ;Get first free letter drive without comma
 GetFirstFreeLetter()
 {
     freeDiskLetter := RunCMD("powershell ls function:[k-u]: -n | ?{ !(test-path $_) } | select -first 1")
     freeDiskLetter := StrReplace(freeDiskLetter, "`r`n")
     freeDiskLetter := StrReplace(freeDiskLetter, ":", "")
-    Log("First free letter: " . freeDiskLetter)
 	return freeDiskLetter
 }
 
@@ -178,13 +167,11 @@ GetFreeLetters(amount)
 	freeDiskLetters := StrReplace(freeDiskLetters, "`r`n")
     freeDiskLetters := StrReplace(freeDiskLetters, ":", "")
 	freeDiskLetters := StrSplit(freeDiskLetters, ";")
-    Log("Get free letters")
 	return freeDiskLetters
 }
 
 getServiceTagPC()
 {
-    Log("Get PC tag")
     PCTag := RunCMD("powershell Get-WmiObject win32_SystemEnclosure | select serialnumber | ft -HideTableHeaders")
     PCTag := RegExReplace(PCTag, "\r\n", "")
     PCTag := RegExReplace(PCTag, " ", "")
@@ -193,7 +180,6 @@ getServiceTagPC()
 
 getProcessorInfo()
 {
-    Log("Get proccessor info")
     processorInfo := RunCMD("powershell Get-WmiObject Win32_Processor | select Name | ft -HideTableHeaders")
     processorInfo := RegExReplace(processorInfo, "\R+\R", "`r`n")
     LogToWindow("Processor " . processorInfo)
@@ -201,7 +187,6 @@ getProcessorInfo()
 
 getRamInfo()
 {
-    Log("Get RAM info")
     ramInfo := RunCMD("powershell Get-WmiObject Win32_PhysicalMemory | Select-Object SerialNumber, Capacity, Configuredclockspeed | Format-List")
     ramInfo := RegExReplace(ramInfo, "\R+\R", "`r`n")
     LogToWindow("RAM: " . ramInfo)
@@ -214,7 +199,6 @@ delAllConn()
 
 IpCheck()
 {
-    Log("Check for IP")
     LogToWindow("Waiting for IP address...")
     ipAddress := RunCMD("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '172.29.*' }")
     ipAddress := RegExReplace(ipAddress, "\r\n", " ")
@@ -234,7 +218,6 @@ RenewIPAdd()
 listDisk()
 {
     LogToWindow("Listing disks...")
-    Log("Loading disks")
     diskListing.Delete()
     diskListing.Add(["...Loading list of disks..."])
     
@@ -265,21 +248,18 @@ listDisk()
         {
             diskListing.Choose(1)
         }
-    Log("Loading disks DONE")
     LogToWindow("Loading disks DONE")
 }
 
 ;Listing images from PCHW
 loadingImages(path)
 {
-    Log("Loading images")
     LogToWindow("Loading images...")
     imagesList.Delete()
     Sleep 200
     imagesList.Add(["...Loading list of images..."])
     if (path = "" )
 	{
-        Log("Path to images not found")
         LogToWindow("Path to images not found")
 	} else
 	{
@@ -322,7 +302,6 @@ DisplayMainWindow()
     global FormatBtn
     global UefiLegacyControl
     global MainMenu
-    Log("Loading main window")
     ;Top Menu
     FileMenu := Menu()
     FileMenu.Add("Reload App", ReloadApp)
@@ -378,7 +357,6 @@ DisplayMainWindow()
     ;Log window
     LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
     MainMenu.Show("w777 h558")
-    Log("Loading main window DONE")
     MainMenu.OnEvent("Close", endApp)
 }
 
@@ -536,7 +514,6 @@ UpdateApp(*)
 
 InstallImage(*)
 {
-    Log("Start install procsess")
     LogToWindow("Starting loading image proccess...")
     diskToInstall := ChckForSelectDisk()
     if (diskToInstall = "")
@@ -560,7 +537,6 @@ InstallImage(*)
     lettersInstall := GetFreeLetters(2)
     if(UefiLegacyControl.Value = 1)
     {
-        Log("Loaded UEFI diskpart format")
         LogToWindow("Formating to UEFI...")
         uefi_partitions := 
         (
@@ -587,7 +563,6 @@ InstallImage(*)
         formatUefi := RunCMD("diskpart /s x:\uefi_format.txt")
         LogToWindow("Done")
     } else if(UefiLegacyControl.Value = 2) {
-        Log("Loaded LEGACY diskpart format")
         LogToWindow("Formating to LEGACY...")
         legacy_partitions :=
         (
@@ -666,15 +641,12 @@ IpCheck()
 defLocLett := GetFirstFreeLetter()
 ;Connect to default location and assign letter
 LogToWindow("Connecting to " . defaLocImages)
-Log("Connecting to " . defaLocImages)
 defaultLoc := RunCMD("net use " . defLocLett . ": " . defaLocImages . " /user:" . defaLocImagesUser . " " . defaLocImagesPass . " /p:no")
 loadingImages(defLocLett . ":\")
 ;Check for updates
 LogToWindow("Checking for updates...")
-Log("Checking for update")
 if (defLocLett . ":" . updateFolLoc = "")
 {
-    Log("Path to update location not found")
     LogToWindow("Path to update location not found")
 } else {
     RunCMD("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
