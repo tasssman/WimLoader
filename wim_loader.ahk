@@ -6,6 +6,7 @@ SetWorkingDir A_ScriptDir
 ;=====================Globals=====================
 global iniPath
 global textLog := ""
+global uniqFileName := ""
 ;=====================Defined variables=====================
 verLatestToDisp := ""
 verLatestFile := ""
@@ -132,9 +133,11 @@ RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow :
 LogToWindow(text)
 {
     global textLog
+    global uniqFileName
     timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
 	textLog := textLog . "`r`n" . timeNow " - " . text
     LogWindow.Value := textLog
+    FileAppend textLog . "`n", "wimlog_" . uniqFileName . ".txt"
 }
 
 iniPathChk()
