@@ -141,7 +141,7 @@ iniPathChk()
 {
     bootLoc := RegRead("HKLM\SYSTEM\ControlSet001\Control", "PEBootRamdiskSourceDrive")
     iniPath := bootLoc . iniName
-    ;LogToWindow("INI Path: " . iniPath)
+    LogToWindow("INI Path: " . iniPath)
     return iniPath
 }
 
@@ -154,6 +154,7 @@ generUniqFileName()
 ;Logger
 Log(text)
 {
+    uniqFileName := ""
     timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
     textToLog := ""
     textToLog := timeNow . " " . text
@@ -642,11 +643,11 @@ ReadOptFastStart()
 }
 ;=====================Script START=====================
 
+DisplayMainWindow()
 ;Get INI file
 iniPath := iniPathChk()
 ;Generate unique name of file
 uniqFileName := generUniqFileName()
-DisplayMainWindow()
 ;Fast start without pc spec
 if(ReadOptFastStart() != 1)
 {
