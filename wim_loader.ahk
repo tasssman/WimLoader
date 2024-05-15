@@ -6,6 +6,7 @@ SetWorkingDir A_ScriptDir
 ;=====================Globals=====================
 global iniPath
 global textLog := ""
+global uniqFileName := ""
 ;=====================Defined variables=====================
 verLatestToDisp := ""
 verLatestFile := ""
@@ -129,36 +130,26 @@ RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow :
     Return RTrim(sOutput, CRLF)
 }
 
-LogToWindow(text)
+LogToWindow(text, userWindow := true)
 {
     global textLog
+    global uniqFileName
     timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
-	textLog := textLog . "`r`n" . timeNow " - " . text
-    LogWindow.Value := textLog
+    if(userWindow = true)
+    {
+        textLog := textLog . "`r`n" . timeNow " - " . text
+        LogWindow.Value := textLog
+    }
+    FileAppend timeNow . "-" . text . "`n", "wimlog_" . uniqFileName . ".txt"
 }
 
 iniPathChk()
 {
     bootLoc := RegRead("HKLM\SYSTEM\ControlSet001\Control", "PEBootRamdiskSourceDrive")
     iniPath := bootLoc . iniName
+    LogToWindow("INI Regex command result: " . bootLoc, false)
     LogToWindow("INI Path: " . iniPath)
     return iniPath
-}
-
-generUniqFileName()
-{
-    timeFile := FormatTime(,"yyyy_MM_dd_HH_mm_ss")
-    return timeFile
-}
-
-;Logger
-Log(text)
-{
-    uniqFileName := ""
-    timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
-    textToLog := ""
-    textToLog := timeNow . " " . text
-    FileAppend textToLog . "`n", "wimlog_" . uniqFileName . ".txt"
 }
 
 ;Get first free letter drive without comma
@@ -167,7 +158,7 @@ GetFirstFreeLetter()
     freeDiskLetter := RunCMD("powershell ls function:[k-u]: -n | ?{ !(test-path $_) } | select -first 1")
     freeDiskLetter := StrReplace(freeDiskLetter, "`r`n")
     freeDiskLetter := StrReplace(freeDiskLetter, ":", "")
-    Log("First free letter: " . freeDiskLetter)
+    LogToWindow("First free disk letter: " . freeDiskLetter, false)
 	return freeDiskLetter
 }
 
@@ -178,13 +169,12 @@ GetFreeLetters(amount)
 	freeDiskLetters := StrReplace(freeDiskLetters, "`r`n")
     freeDiskLetters := StrReplace(freeDiskLetters, ":", "")
 	freeDiskLetters := StrSplit(freeDiskLetters, ";")
-    Log("Get free letters")
+    LogToWindow("First free disks letters: " . freeDiskLetters, false)
 	return freeDiskLetters
 }
 
 getServiceTagPC()
 {
-    Log("Get PC tag")
     PCTag := RunCMD("powershell Get-WmiObject win32_SystemEnclosure | select serialnumber | ft -HideTableHeaders")
     PCTag := RegExReplace(PCTag, "\r\n", "")
     PCTag := RegExReplace(PCTag, " ", "")
@@ -193,7 +183,6 @@ getServiceTagPC()
 
 getProcessorInfo()
 {
-    Log("Get proccessor info")
     processorInfo := RunCMD("powershell Get-WmiObject Win32_Processor | select Name | ft -HideTableHeaders")
     processorInfo := RegExReplace(processorInfo, "\R+\R", "`r`n")
     LogToWindow("Processor " . processorInfo)
@@ -201,7 +190,6 @@ getProcessorInfo()
 
 getRamInfo()
 {
-    Log("Get RAM info")
     ramInfo := RunCMD("powershell Get-WmiObject Win32_PhysicalMemory | Select-Object SerialNumber, Capacity, Configuredclockspeed | Format-List")
     ramInfo := RegExReplace(ramInfo, "\R+\R", "`r`n")
     LogToWindow("RAM: " . ramInfo)
@@ -209,12 +197,12 @@ getRamInfo()
 
 delAllConn()
 {
-    RunCMD("net use * /DELETE /Y")
+    result := RunCMD("net use * /DELETE /Y")
+    LogToWindow("Delete all connections result: " . result, false)
 }
 
 IpCheck()
 {
-    Log("Check for IP")
     LogToWindow("Waiting for IP address...")
     ipAddress := RunCMD("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -like '172.29.*' }")
     ipAddress := RegExReplace(ipAddress, "\r\n", " ")
@@ -234,7 +222,6 @@ RenewIPAdd()
 listDisk()
 {
     LogToWindow("Listing disks...")
-    Log("Loading disks")
     diskListing.Delete()
     diskListing.Add(["...Loading list of disks..."])
     
@@ -265,21 +252,18 @@ listDisk()
         {
             diskListing.Choose(1)
         }
-    Log("Loading disks DONE")
     LogToWindow("Loading disks DONE")
 }
 
 ;Listing images from PCHW
 loadingImages(path)
 {
-    Log("Loading images")
     LogToWindow("Loading images...")
     imagesList.Delete()
     Sleep 200
     imagesList.Add(["...Loading list of images..."])
     if (path = "" )
 	{
-        Log("Path to images not found")
         LogToWindow("Path to images not found")
 	} else
 	{
@@ -288,8 +272,10 @@ loadingImages(path)
 		{
 		    imagesList.Add([A_LoopFileShortPath])
 		}
+        optionImName := ReadOptImageName()
+        LogToWindow("Options read last image name: " . optionImName, false)
         if(ReadOptImageName() != "0")
-        {
+        { 
             LogToWindow("Auto selecting last image...")
             listItems := ControlGetItems(imagesList)
 
@@ -312,6 +298,7 @@ loadingImages(path)
 ;Display Main Window
 DisplayMainWindow()
 {
+    LogToWindow("Loading main window: ", false)
     global diskListing
     global imagesList
     global UsbShow
@@ -322,7 +309,6 @@ DisplayMainWindow()
     global FormatBtn
     global UefiLegacyControl
     global MainMenu
-    Log("Loading main window")
     ;Top Menu
     FileMenu := Menu()
     FileMenu.Add("Reload App", ReloadApp)
@@ -378,12 +364,13 @@ DisplayMainWindow()
     ;Log window
     LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
     MainMenu.Show("w777 h558")
-    Log("Loading main window DONE")
+    LogToWindow("Loading main windows - done: ", false)
     MainMenu.OnEvent("Close", endApp)
 }
 
 OptionsWindowFunc()
 {
+    LogToWindow("Loading options window", false)
     global OptionsWindow
     ;Create window
     OptionsWindow := Gui(, "Options")
@@ -400,6 +387,7 @@ OptionsWindowFunc()
     ButtonClose := OptionsWindow.Add("Button", "x137 y320 w80 h23", "&Close")
     OptionsWindow.Title := "Options"
     OptionsWindow.Show("w361 h352")
+    LogToWindow("Loading options window - done", false)
     MainMenu.Opt("+Disabled")
     
     ;Events
@@ -425,16 +413,19 @@ OptionsWindowFunc()
 endApp(*)
 {
     delAllConn()
+    LogToWindow("Exiting", false)
     ExitApp
 }
 
 StdOutLog(Item,*)
 {
+    LogToWindow("Open StdOutput log", false)
     Run "notepad.exe wimlog_" . uniqFileName . "_StdOutput.txt"
 }
 
 ReloadApp(Item,*)
 {
+    LogToWindow("Reloading app", false)
     Reload
     return
 }
@@ -458,6 +449,7 @@ ChckForSelectDisk()
 
 FormatDisk(*)
 {
+    LogToWindow("Formating disk start: ", false)
     diskId := ChckForSelectDisk()
     if (diskId = "")
     {
@@ -494,21 +486,25 @@ FormatDisk(*)
 
 ShowDrivesUsb(*)
 {
+    LogToWindow("Show USB checkbox selected", false)
     listDisk()
 }
 
 RenewAddressIP(*)
 {
+    LogToWindow("Renew button pressed", false)
     RenewIPAdd()
 }
 
 RefreshImages(*)
 {
+    LogToWindow("Refresh images button pressed", false)
     loadingImages(defLocLett . ":\")
 }
 
 RefreshDisks(*)
 {
+    LogToWindow("Refresh disks button pressed", false)
     listDisk()
 }
 
@@ -536,23 +532,26 @@ UpdateApp(*)
 
 InstallImage(*)
 {
-    Log("Start install procsess")
     LogToWindow("Starting loading image proccess...")
     diskToInstall := ChckForSelectDisk()
     if (diskToInstall = "")
     {
+        LogToWindow("No disk was selected", false)
         MsgBox "Select disk to install image"
         return
     }
     if (imagesList.Text = "")
     {
+        LogToWindow("No image was selected", false)
         MsgBox "Select image to install"
         return
     } else {
         imageToInstall := imagesList.Text
+        LogToWindow("Image to install: " . imageToInstall, false)
         ;Save to ini when option is selected
         
         if(ReadOptLastImage = 1) {
+            LogToWindow("Saving image name to ini", false)
             RegExMatch(imagesList.Text, ".*\\(.*)", &imageSaveIni)
             IniWrite(imageSaveIni[1], iniPath, "Data", "LastLoadImageName" )
         }
@@ -560,7 +559,6 @@ InstallImage(*)
     lettersInstall := GetFreeLetters(2)
     if(UefiLegacyControl.Value = 1)
     {
-        Log("Loaded UEFI diskpart format")
         LogToWindow("Formating to UEFI...")
         uefi_partitions := 
         (
@@ -579,15 +577,16 @@ InstallImage(*)
             assign letter=" lettersInstall[2] "
             exit"
         )
+        LogToWindow("System letter: " . lettersInstall[1] . " and Windows letter: " . lettersInstall[2], false)
         If fileExist("x:\uefi_format.txt")
         {
             FileDelete "x:\uefi_format.txt"
         }
         FileAppend uefi_partitions, "x:\uefi_format.txt"
+        LogToWindow("Diskpart start", false)
         formatUefi := RunCMD("diskpart /s x:\uefi_format.txt")
         LogToWindow("Done")
     } else if(UefiLegacyControl.Value = 2) {
-        Log("Loaded LEGACY diskpart format")
         LogToWindow("Formating to LEGACY...")
         legacy_partitions :=
         (
@@ -605,11 +604,13 @@ InstallImage(*)
             assign letter=" lettersInstall[2] "
             exit"
         )
+        LogToWindow("System letter: " . lettersInstall[1] . " and Windows letter: " . lettersInstall[2], false)
         If fileExist("x:\legacy_format.txt")
         {
             FileDelete "x:\legacy_format.txt"
         }
         FileAppend legacy_partitions, "x:\legacy_format.txt"
+        LogToWindow("Diskpart start", false)
         formatUefi := RunCMD("diskpart /s x:\legacy_format.txt")
         LogToWindow("Done")
     }
@@ -624,30 +625,38 @@ InstallImage(*)
 
 ReadOptLastImage()
 {
-    return IniRead(iniPath, "Options", "ImageLastLoad", "0")
+    optionRead := IniRead(iniPath, "Options", "ImageLastLoad", "0")
+    LogToWindow("Options read last image load: " . optionRead, false)
+    return optionRead
 }
 
 ReadOptImageName()
 {
-    return IniRead(iniPath, "Data", "LastLoadImageName", "0")
+    optionRead := IniRead(iniPath, "Data", "LastLoadImageName", "0")
+    return optionRead
 }
 
 ReadOptFirstDisk()
 {
-    return FirstDiskOptions := IniRead(iniPath, "Options", "SelectFirstDisk", "0")
+    optionRead := FirstDiskOptions := IniRead(iniPath, "Options", "SelectFirstDisk", "0")
+    LogToWindow("Options read first disk: " . optionRead, false)
+    return optionRead
 }
 
 ReadOptFastStart()
 {
-    return IniRead(iniPath, "Options", "FastStart", "0")
+    optionRead := IniRead(iniPath, "Options", "FastStart", "0")
+    LogToWindow("Options read fast start: " . optionRead, false)
+    return optionRead
 }
 ;=====================Script START=====================
-
+;Generate unique name of file
+uniqFileName := FormatTime(,"yyyy_MM_dd_HH_mm_ss")
+LogToWindow("Generating uniq file name for logs done", false)
+;Display Main Window
 DisplayMainWindow()
 ;Get INI file
 iniPath := iniPathChk()
-;Generate unique name of file
-uniqFileName := generUniqFileName()
 ;Fast start without pc spec
 if(ReadOptFastStart() != 1)
 {
@@ -666,15 +675,12 @@ IpCheck()
 defLocLett := GetFirstFreeLetter()
 ;Connect to default location and assign letter
 LogToWindow("Connecting to " . defaLocImages)
-Log("Connecting to " . defaLocImages)
 defaultLoc := RunCMD("net use " . defLocLett . ": " . defaLocImages . " /user:" . defaLocImagesUser . " " . defaLocImagesPass . " /p:no")
 loadingImages(defLocLett . ":\")
 ;Check for updates
 LogToWindow("Checking for updates...")
-Log("Checking for update")
 if (defLocLett . ":" . updateFolLoc = "")
 {
-    Log("Path to update location not found")
     LogToWindow("Path to update location not found")
 } else {
     RunCMD("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
