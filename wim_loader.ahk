@@ -137,7 +137,7 @@ LogToWindow(text)
     timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
 	textLog := textLog . "`r`n" . timeNow " - " . text
     LogWindow.Value := textLog
-    FileAppend textLog . "`n", "wimlog_" . uniqFileName . ".txt"
+    FileAppend timeNow . "-" . text . "`n", "wimlog_" . uniqFileName . ".txt"
 }
 
 iniPathChk()
@@ -620,12 +620,11 @@ ReadOptFastStart()
     return IniRead(iniPath, "Options", "FastStart", "0")
 }
 ;=====================Script START=====================
-
+;Generate unique name of file
+uniqFileName := generUniqFileName()
 DisplayMainWindow()
 ;Get INI file
 iniPath := iniPathChk()
-;Generate unique name of file
-uniqFileName := generUniqFileName()
 ;Fast start without pc spec
 if(ReadOptFastStart() != 1)
 {
