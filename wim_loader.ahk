@@ -16,7 +16,7 @@ defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
 iniName := "wimloader.ini"
-version := "2.1.1"
+version := "2.1.2"
 ;=====================Functions=====================
 
 RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow := 1)
@@ -169,7 +169,10 @@ GetFreeLetters(amount)
 	freeDiskLetters := StrReplace(freeDiskLetters, "`r`n")
     freeDiskLetters := StrReplace(freeDiskLetters, ":", "")
 	freeDiskLetters := StrSplit(freeDiskLetters, ";")
-    LogToWindow("First free disks letters: " . freeDiskLetters, false)
+    for index, value in freeDiskLetters
+    {
+        LogToWindow("First free disk letter: " . value, false)
+    }
 	return freeDiskLetters
 }
 
