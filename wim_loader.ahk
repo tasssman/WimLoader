@@ -450,38 +450,45 @@ ChckForSelectDisk()
     }
 }
 
+DiskFormat(disks) ;array
+{
+    for index, value in disks
+    {
+        LogToWindow("Formating disk ID: " . value . ". Please wait.")
+        diskpartText :=
+        (
+            "select disk " value "
+            clean
+            convert gpt
+            create partition primary
+            format quick fs=ntfs
+            assign
+            exit"
+        )
+        if fileExist("x:\format_disk.txt")
+        {
+            FileDelete "x:\format_disk.txt"
+        }
+        FileAppend diskpartText, "x:\format_disk.txt"
+        formatDisk := RunCMD("diskpart /s x:\format_disk.txt")
+        Sleep(300)
+        LogToWindow("Format done.")
+    }
+}
+
 FormatDisk(*)
 {
-    LogToWindow("Formating disk start: ", false)
     diskId := ChckForSelectDisk()
     if (diskId = "")
     {
         MsgBox "Select disk to format"
     } else {
         FormatBtn.Opt("Disabled")
-        LogToWindow("Formating disk ID: " diskId)
-        diskpartText := "
-        (
-            select disk disk_number
-            clean
-            convert gpt
-            create partition primary
-            format quick fs=ntfs
-            assign
-            exit
-        )"
         diskListing.Delete()
         diskListing.Add(["Formating disk " . diskId . " Please wait..."])
         Sleep 100
-        formatToFile := StrReplace(diskpartText, "disk_number", diskId)
-        if fileExist("x:\format_disk.txt")
-        {
-            FileDelete "x:\format_disk.txt"
-        }
-        FileAppend formatToFile, "x:\format_disk.txt"
-        ;Run "diskpart /s x:\format_disk.txt",,"Max"
-        formatDisk := RunCMD("diskpart /s x:\format_disk.txt")
-        LogToWindow("Formating disk DONE")
+        diskArray := [diskId]
+        DiskFormat(diskArray)
         listDisk()
         FormatBtn.Enabled := true
     }
