@@ -7,6 +7,7 @@ SetWorkingDir A_ScriptDir
 global iniPath
 global textLog := ""
 global uniqFileName := ""
+global disksToFormat := []
 ;=====================Defined variables=====================
 verLatestToDisp := ""
 verLatestFile := ""
@@ -310,6 +311,7 @@ DisplayMainWindow()
     global CurrImagesPathText
     global UpdateButton
     global FormatBtn
+    global FormatAllBtn
     global UefiLegacyControl
     global MainMenu
     ;Top Menu
@@ -332,6 +334,11 @@ DisplayMainWindow()
     ;Button Format
     FormatBtn := MainMenu.Add("Button", "x288 y144 w80 h23", "Format disk")
     FormatBtn.OnEvent("Click", FormatDisk)
+    ;Button Format All
+    MainMenu.SetFont("s8", "Segoe UI")
+    FormatAllBtn := MainMenu.Add("Button", "x288 y169 w80 h23", "Format all disks")
+    FormatAllBtn.OnEvent("Click", FormatAllDisks)
+    MainMenu.SetFont("s9", "Segoe UI")
     ;Show only USB
     UsbShow := MainMenu.Add("CheckBox", "x32 y144 w110 h15", "Show USB drives")
     UsbShow.OnEvent("Click", ShowDrivesUsb)
@@ -452,9 +459,11 @@ ChckForSelectDisk()
 
 DiskFormat(disks) ;array
 {
-    for index, value in disks
+    for value in disks
     {
+        diskListing.Delete()
         LogToWindow("Formating disk ID: " . value . ". Please wait.")
+        diskListing.Add(["Formating disk " . value . " Please wait..."])
         diskpartText :=
         (
             "select disk " value "
@@ -474,24 +483,46 @@ DiskFormat(disks) ;array
         Sleep(300)
         LogToWindow("Format done.")
     }
+    listDisk()
 }
 
 FormatDisk(*)
 {
+    diskArray := []
     diskId := ChckForSelectDisk()
     if (diskId = "")
     {
         MsgBox "Select disk to format"
     } else {
         FormatBtn.Opt("Disabled")
-        diskListing.Delete()
-        diskListing.Add(["Formating disk " . diskId . " Please wait..."])
-        Sleep 100
-        diskArray := [diskId]
+        diskArray.Push(diskId)
         DiskFormat(diskArray)
-        listDisk()
         FormatBtn.Enabled := true
     }
+}
+
+FormatAllDisks(*)
+{
+    result := MsgBox("Do you want format ALL disks?", "Format","4404")
+    if(result = "No")
+    {
+        return
+    }
+    LogToWindow("Formating all disks.")
+    FormatAllBtn.Opt("Disabled")
+    formatDisks := Array()
+    disks := RunCMD("powershell Get-Disk | Where-Object -FilterScript {$_.Bustype -notcontains 'usb'} | Select-Object -Property @{n='Disk ###';e={'{0}' -f $_.Number}} | ConvertTo-Csv -NoTypeInformation")
+    disks := StrSplit(disks, "`r`n")
+    for index, value in disks
+    {
+        if(RegExMatch(value, "[0-1]{1}"))
+        {
+            RegExMatch(value, "([0-1]{1})", &diskArray)
+            formatDisks.Push(diskArray[1])
+        }
+    }
+    DiskFormat(formatDisks)
+    FormatAllBtn.Enabled := true
 }
 
 ShowDrivesUsb(*)

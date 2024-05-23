@@ -16,6 +16,7 @@ Construct() {
 	myGui.Add("ListBox", "x32 y16 w425 h121")
 	myGui.Add("ListBox", "x32 y208 w425 h199")
 	ButtonFormatdisk := myGui.Add("Button", "x288 y144 w80 h23", "Format disk")
+	ButtonFormatAll := myGui.Add("Button", "x288 y169 w80 h23", "Format all disks")
 	CheckBox1 := myGui.Add("CheckBox", "x32 y144 w110 h15", "Show USB drives")
 	ButtonRefreshDisks := myGui.Add("Button", "x376 y144 w80 h23", "Refresh Disks")
 	DropDownList1 := myGui.Add("DropDownList", "x32 y434 w100", ["UEFI Format", "LEGACY Format"])
