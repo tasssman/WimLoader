@@ -17,7 +17,7 @@ defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
 iniName := "wimloader.ini"
-version := "2.1.2"
+version := "2.1.3"
 ;=====================Functions=====================
 
 RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow := 1)
