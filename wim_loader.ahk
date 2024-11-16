@@ -146,7 +146,12 @@ LogToWindow(text, userWindow := true)
 
 iniPathChk()
 {
-    bootLoc := RegRead("HKLM\SYSTEM\ControlSet001\Control", "PEBootRamdiskSourceDrive")
+    bootLoc := RegRead("HKLM\SYSTEM\ControlSet001\Control", "PEBootRamdiskSourceDrive", "noKey")
+    MsgBox(bootLoc)
+    if(bootLoc = "noKey" )
+    {
+        bootLoc := "x:\"
+    }
     iniPath := bootLoc . iniName
     LogToWindow("INI Regex command result: " . bootLoc, false)
     LogToWindow("INI Path: " . iniPath)
