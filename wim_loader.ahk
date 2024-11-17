@@ -147,7 +147,6 @@ LogToWindow(text, userWindow := true)
 iniPathChk()
 {
     bootLoc := RegRead("HKLM\SYSTEM\ControlSet001\Control", "PEBootRamdiskSourceDrive", "noKey")
-    MsgBox(bootLoc)
     if(bootLoc = "noKey" )
     {
         bootLoc := "x:\"
@@ -698,9 +697,9 @@ ReadOptFastStart()
 ;=====================Script START=====================
 ;Generate unique name of file
 uniqFileName := FormatTime(,"yyyy_MM_dd_HH_mm_ss")
-LogToWindow("Generating uniq file name for logs done", false)
 ;Display Main Window
 DisplayMainWindow()
+LogToWindow("Generating uniq file name for logs done", false)
 ;Get INI file
 iniPath := iniPathChk()
 ;Fast start without pc spec
