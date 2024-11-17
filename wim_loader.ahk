@@ -17,7 +17,7 @@ defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
 iniName := "wimloader.ini"
-version := "2.1.3"
+version := "2.1.4"
 ;=====================Functions=====================
 
 RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow := 1)
@@ -138,7 +138,7 @@ LogToWindow(text, userWindow := true)
     timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
     if(userWindow = true)
     {
-        textLog := textLog . "`r`n" . timeNow " - " . text
+        textLog := timeNow " - " . text . "`r`n" . textLog 
         LogWindow.Value := textLog
     }
     FileAppend timeNow . "-" . text . "`n", "wimlog_" . uniqFileName . ".txt"
