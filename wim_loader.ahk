@@ -17,7 +17,7 @@ defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
 iniName := "wimloader.ini"
-version := "2.1.4"
+version := "2.1.5"
 ;=====================Functions=====================
 
 RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow := 1)
@@ -519,9 +519,9 @@ FormatAllDisks(*)
     disks := StrSplit(disks, "`r`n")
     for index, value in disks
     {
-        if(RegExMatch(value, "[0-1]{1}"))
+        if(RegExMatch(value, "[0-9]{1}"))
         {
-            RegExMatch(value, "([0-1]{1})", &diskArray)
+            RegExMatch(value, "([0-9]{1})", &diskArray)
             formatDisks.Push(diskArray[1])
         }
     }
