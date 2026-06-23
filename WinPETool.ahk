@@ -89,6 +89,7 @@ DisplayMainWindow()
         FileDelete(pathCreate.Value "\mount\Windows\System32\startnet.cmd")
         FileAppend("wpeinit`nstart wimloader.exe", pathCreate.Value "\mount\Windows\System32\startnet.cmd")
         ShowOnLog("Create necessary line in startnet.cmd... DONE",1,1)
+        unMountWim(pathCreate.Value . "\mount")
     }
 
 	return MainMenu
