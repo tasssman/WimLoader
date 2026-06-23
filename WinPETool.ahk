@@ -74,7 +74,8 @@ DisplayMainWindow()
 
     AddWimloader(*)
     {
-        ;mountWim(pathCreate.Value, pathCreate.Value . "\mount")
+        checkForWim(pathCreate.Value)
+        mountWim(pathCreate.Value, pathCreate.Value . "\mount")
         ShowOnLog("Select WimLoader.exe...",1,1)
         wimLoaderPath := FileSelect(,,"Select WimLoader file","*.exe")
         ShowOnLog("Copying from " . wimLoaderPath .  " and rename to WimLoader.exe",1,1)
