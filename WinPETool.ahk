@@ -3,7 +3,7 @@
 SetWorkingDir A_ScriptDir  ; Ensures a consistent starting directory.
 #SingleInstance Force ;Only one copy can be run
 ;Included files
-#Include WinPETool_RunCmd.ahk
+#Include lib\WinPETool_RunCmd.ahk
 ;Install files
 
 ;Globals and assigning
