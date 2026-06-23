@@ -85,6 +85,10 @@ DisplayMainWindow()
         } else {
             ShowOnLog("Copying DONE",1,1)
         }
+        ShowOnLog("Create necessary line in startnet.cmd...",1,1)
+        FileDelete(pathCreate.Value "\mount\Windows\System32\startnet.cmd")
+        FileAppend("wpeinit`nstart wimloader.exe", pathCreate.Value "\mount\Windows\System32\startnet.cmd")
+        ShowOnLog("Create necessary line in startnet.cmd... DONE",1,1)
     }
 
 	return MainMenu
