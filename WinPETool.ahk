@@ -167,9 +167,23 @@ unMountWim(mountDir)
     ;Dism /Unmount-Image /MountDir:"D:\WinPE_amd64\mount" /commit
 }
 
+checkForAdk()
+{
+    adkPath := "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\11Oscdimg\oscdimg.exe"
+    if FileExist(adkPath){
+        ShowOnLog("ADK Deployment are properly installed. Go go go.",1,1)
+    } else {
+        ShowOnLog("ADK Deployment are not installed. Please install first. App was disabled. Closing app in 7 sec. ")
+        MainMenu.Opt("+Disabled")
+        Sleep("7000")
+        ExitApp
+    }
+}
+
 ;Script start
 MainMenu := DisplayMainWindow()
 MainMenu.Show()
 LogWindow := DisplayLogWindow()
 MainMenu.GetPos(&x, &y, &w, &h)
 LogWindow.Show(Format("x{} y{} h559", x + w + 10, y))
+checkForAdk()
