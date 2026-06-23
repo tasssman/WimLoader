@@ -169,7 +169,7 @@ unMountWim(mountDir)
 
 checkForAdk()
 {
-    adkPath := "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\11Oscdimg\oscdimg.exe"
+    adkPath := "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\amd64\Oscdimg\oscdimg.exe"
     if FileExist(adkPath){
         ShowOnLog("ADK Deployment are properly installed. Go go go.",1,1)
     } else {
