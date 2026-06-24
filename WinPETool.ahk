@@ -23,18 +23,24 @@ DisplayMainWindow()
     ;Show log button
     ButtonShowlog := MainMenu.Add("Button", "x432 y8 w80 h23", "Hide log")
     ButtonShowlog.OnEvent("Click", ShowLog)
-    ;Create WinPE
+
     MainMenu.Add("GroupBox", "x8 y40 w504 h57", "Create WinPE")
+    MainMenu.Add("GroupBox", "x8 y+2 w504 h57", "USB Create")
+
 	MainMenu.Add("Text", "x16 y64 w34 h23 +0x200", "Path:")
 	pathCreate := MainMenu.Add("Edit", "x+2 y64 w201 h21", "C:\WinPE_amd64")
 	ButtonCreate := MainMenu.Add("Button", "x+2 y64 w80 h23", "Create")
     ButtonCreate.OnEvent("Click", CreateWINPE)
+
     ;Add packages
     ButtonPackages := MainMenu.Add("Button", "x+2 y64 w80 h23", "Add Pkgs")
     ButtonPackages.OnEvent("Click", AddPackages)
     ;Add Wimloader and starnet.cmd
     ButtonWimLoader := MainMenu.Add("Button", "x+2 y64 w80 h23", "Add Wimloader")
     ButtonWimLoader.OnEvent("Click", AddWimloader)
+
+    MainMenu.Add("Text", "x16 y120 w34 h23 +0x200", "Path:")
+    pathWimLoader := MainMenu.Add("Edit", "x+2 y120 w201 h21", "\\pchw\d$\WinPE_HW")
 
 	MainMenu.OnEvent('Close', (*) => ExitApp())
 	MainMenu.Title := "WinPETool"
