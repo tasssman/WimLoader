@@ -24,13 +24,17 @@ DisplayMainWindow()
     ButtonShowlog := MainMenu.Add("Button", "x432 y8 w80 h23", "Hide log")
     ButtonShowlog.OnEvent("Click", ShowLog)
 
-    MainMenu.Add("GroupBox", "x8 y40 w504 h57", "Create WinPE")
+    ;Group box
+    MainMenu.Add("GroupBox", "x8 y40 w504 h80", "Create WinPE")
     MainMenu.Add("GroupBox", "x8 y+2 w504 h57", "USB Create")
 
 	MainMenu.Add("Text", "x16 y64 w34 h23 +0x200", "Path:")
 	pathCreate := MainMenu.Add("Edit", "x+2 y64 w201 h21", "C:\WinPE_amd64")
 	ButtonCreate := MainMenu.Add("Button", "x+2 y64 w80 h23", "Create")
     ButtonCreate.OnEvent("Click", CreateWINPE)
+
+    ButtonAddDrv := MainMenu.Add("Button", "y+2 w80 h23", "Add drivers")
+    ButtonAddDrv.OnEvent("Click", AddDriver)
 
     ;Add packages
     ButtonPackages := MainMenu.Add("Button", "x+2 y64 w80 h23", "Add Pkgs")
@@ -39,8 +43,8 @@ DisplayMainWindow()
     ButtonWimLoader := MainMenu.Add("Button", "x+2 y64 w80 h23", "Add Wimloader")
     ButtonWimLoader.OnEvent("Click", AddWimloader)
 
-    MainMenu.Add("Text", "x16 y120 w34 h23 +0x200", "Path:")
-    pathWimLoader := MainMenu.Add("Edit", "x+2 y120 w201 h21", "\\pchw\d$\WinPE_HW")
+    MainMenu.Add("Text", "x16 y145 w34 h23 +0x200", "Path:")
+    pathWimLoader := MainMenu.Add("Edit", "x+2 w201 h21", "\\pchw\d$\WinPE_HW")
 
 	MainMenu.OnEvent('Close', (*) => ExitApp())
 	MainMenu.Title := "WinPETool"
@@ -96,6 +100,18 @@ DisplayMainWindow()
         FileDelete(pathCreate.Value "\mount\Windows\System32\startnet.cmd")
         FileAppend("wpeinit`nstart wimloader.exe", pathCreate.Value "\mount\Windows\System32\startnet.cmd")
         ShowOnLog("Create necessary line in startnet.cmd... DONE",1,1)
+        unMountWim(pathCreate.Value . "\mount")
+    }
+
+    AddDriver(*)
+    {
+        checkForWim(pathCreate.Value)
+        mountWim(pathCreate.Value, pathCreate.Value . "\mount")
+        ShowOnLog("Select driver file *.info ...",1,1)
+        driverPath := FileSelect("D",,"Select driver file")
+        ShowOnLog("Adding drivers...",1,1)
+        RunCMD('C:\Windows\System32\dism.exe /Image:"' pathCreate.Value '\mount" /Add-Driver /Driver:"' driverPath '" /Recurse',,, RunCmdReturnLine)
+        ShowOnLog("Adding driver... DONE",1,1)
         unMountWim(pathCreate.Value . "\mount")
     }
 
