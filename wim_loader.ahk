@@ -278,7 +278,7 @@ loadingImages(path)
         imagesList.Delete()
 		Loop Files path . "*.wim"
 		{
-		    imagesList.Add([A_LoopFileShortPath])
+		    imagesList.Add([A_LoopFilePath])
 		}
         optionImName := ReadOptImageName()
         LogToWindow("Options read last image name: " . optionImName, false)
