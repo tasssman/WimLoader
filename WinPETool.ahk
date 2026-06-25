@@ -39,12 +39,17 @@ DisplayMainWindow()
     ;Add packages
     ButtonPackages := MainMenu.Add("Button", "x+2 y64 w80 h23", "Add Pkgs")
     ButtonPackages.OnEvent("Click", AddPackages)
+
+    ButtonCopyReadyWinPE := MainMenu.Add("Button", "y+2 w80 h23", "CopyPE to dest")
+    ButtonCopyReadyWinPE.OnEvent("Click", CopyForWinPEHW)
+    
+
     ;Add Wimloader and starnet.cmd
     ButtonWimLoader := MainMenu.Add("Button", "x+2 y64 w80 h23", "Add Wimloader")
     ButtonWimLoader.OnEvent("Click", AddWimloader)
 
     MainMenu.Add("Text", "x16 y145 w34 h23 +0x200", "Path:")
-    pathWimLoader := MainMenu.Add("Edit", "x+2 w201 h21", "\\pchw\d$\WinPE_HW")
+    pathWimLoader := MainMenu.Add("Edit", "x+2 w201 h21", "\\pchw\d$")
 
 	MainMenu.OnEvent('Close', (*) => ExitApp())
 	MainMenu.Title := "WinPETool"
@@ -113,6 +118,11 @@ DisplayMainWindow()
         RunCMD('C:\Windows\System32\dism.exe /Image:"' pathCreate.Value '\mount" /Add-Driver /Driver:"' driverPath '" /Recurse',,, RunCmdReturnLine)
         ShowOnLog("Adding driver... DONE",1,1)
         unMountWim(pathCreate.Value . "\mount")
+    }
+
+    CopyForWinPEHW(*)
+    {
+
     }
 
 	return MainMenu
