@@ -17,7 +17,7 @@ defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
 updateFolLoc := "\sources\"
 iniName := "wimloader.ini"
-version := "2.1.6"
+version := "2.1.7"
 ;=====================Functions=====================
 
 RunCMD(P_CmdLine, P_WorkingDir := "", P_Codepage := "CP0", P_Func := 0, P_Slow := 1)
@@ -733,7 +733,7 @@ if (defLocLett . ":" . updateFolLoc = "")
     {
         Loop Files defLocLett . ":" . updateFolLoc . "*latest.*"
         {
-            RegExMatch(A_LoopFileShortPath, "[0-9].*[0-9]", &verUpdateFile)
+            RegExMatch(A_LoopFilePath, "[0-9].*[0-9]", &verUpdateFile)
             verLatestFile := StrReplace(verUpdateFile[], "_", "")
             verLatestToDisp := StrReplace(verUpdateFile[], "_", ".")
             verCurrent := StrReplace(version, ".", "")
