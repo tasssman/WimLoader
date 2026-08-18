@@ -22,17 +22,29 @@ iniName := "wimloader.ini"
 version := "2.2.0"
 ;=====================Functions=====================
 
-LogToWindow(text, userWindow := true)
+LogToWindow(message, timeLine := 0, CR := 0) ;timeLine (default 0) if "1" than time is added; CR default 0. Number constitutes how many "enters" append after text.
 {
-    global textLog
-    global uniqFileName
-    timeNow := FormatTime(,"yyyy-MM-dd_HH:mm:ss")
-    if(userWindow = true)
-    {
-        textLog := timeNow " - " . text . "`r`n" . textLog 
-        LogWindow.Value := textLog
+    global LogWindow
+    enterNum := ""
+    if CR > 0 {
+        Loop CR {
+            enterNum := "`r`n" . enterNum
+        }
     }
-    FileAppend timeNow . "-" . text . "`n", "wimlog_" . uniqFileName . ".txt"
+
+    if timeLine = 1 {
+        time := FormatTime(,"HH:mm:ss")
+        message := time . ": " . message . enterNum
+    } else {
+        message := message . enterNum
+    }
+    SendMessage(0xB1, -2, -1, LogWindow) ; EM_SETSEL - originally by SKAN: sets the selection to the end of the control                                                                                                                                       ;
+    SendMessage(0xC2, 0, StrPtr(message), LogWindow) ; EM_REPLACESEL
+}
+
+RunCmdReturnLine(Line, LineNum)
+{
+    LogToWindow(Line)
 }
 
 iniPathChk()
@@ -197,7 +209,6 @@ loadingImages(path)
 ;Display Main Window
 DisplayMainWindow()
 {
-    LogToWindow("Loading main window: ", false)
     global diskListing
     global imagesList
     global UsbShow
@@ -268,7 +279,7 @@ DisplayMainWindow()
     MainMenu.SetFont("s9", "Segoe UI")
     ;Log window
     LogWindow := MainMenu.Add("Edit", "x464 y16 w305 h536 ReadOnly Multi")
-    MainMenu.Show("w777 h558")
+    MainMenu.Show()
     LogToWindow("Loading main windows - done: ", false)
     MainMenu.OnEvent("Close", endApp)
 }
