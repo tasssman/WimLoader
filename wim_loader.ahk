@@ -583,7 +583,7 @@ InstallImage(*)
 ReadOptLastImage()
 {
     optionRead := IniRead(iniPath, "Options", "ImageLastLoad", "0")
-    LogToWindow("Options read last image load: " . optionRead,1,1)
+    LogToWindow("Options read last image load: " . optionRead,1,1,1)
     return optionRead
 }
 
@@ -596,14 +596,14 @@ ReadOptImageName()
 ReadOptFirstDisk()
 {
     optionRead := FirstDiskOptions := IniRead(iniPath, "Options", "SelectFirstDisk", "0")
-    LogToWindow("Options read first disk: " . optionRead,1,1)
+    LogToWindow("Options read first disk: " . optionRead,1,1,1)
     return optionRead
 }
 
 ReadOptFastStart()
 {
     optionRead := IniRead(iniPath, "Options", "FastStart", "0")
-    LogToWindow("Options read fast start: " . optionRead,1,1)
+    LogToWindow("Options read fast start: " . optionRead,1,1,1)
     return optionRead
 }
 ;=====================Script START=====================
