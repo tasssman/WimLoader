@@ -8,7 +8,6 @@ SetWorkingDir A_ScriptDir
 ;=====================Globals=====================
 global iniPath
 global textLog := ""
-global uniqFileName := ""
 global disksToFormat := []
 ;=====================Defined variables=====================
 verLatestToDisp := ""
@@ -22,9 +21,11 @@ iniName := "wimloader.ini"
 version := "2.2.0"
 ;=====================Functions=====================
 
-LogToWindow(message, timeLine := 0, CR := 0) ;timeLine (default 0) if "1" than time is added; CR default 0. Number constitutes how many "enters" append after text.
+LogToWindow(message, timeLine := 0, CR := 0, onlyLog := 0) ;timeLine (default 0) if "1" than time is added; CR default 0. Number constitutes how many "enters" append after text.
 {
     global LogWindow
+    
+    ;Add enter lines
     enterNum := ""
     if CR > 0 {
         Loop CR {
@@ -32,17 +33,26 @@ LogToWindow(message, timeLine := 0, CR := 0) ;timeLine (default 0) if "1" than t
         }
     }
 
+    ;Add time line
     if timeLine = 1 {
         time := FormatTime(,"HH:mm:ss")
         message := time . ": " . message . enterNum
     } else {
         message := message . enterNum
     }
-    SendMessage(0xB1, -2, -1, LogWindow) ; EM_SETSEL - originally by SKAN: sets the selection to the end of the control                                                                                                                                       ;
-    SendMessage(0xC2, 0, StrPtr(message), LogWindow) ; EM_REPLACESEL
+
+    ;Add text to log    
+    logTime := FormatTime(,"yyyy-MM-dd_hh:mm:ss")
+    fileLog := A_ScriptDir . "\log.txt"
+    FileAppend("[" . logTime . "]" . " " . message, fileLog)
+    
+    if(onlyLog = 0) {
+        SendMessage(0xB1, -2, -1, LogWindow) ; EM_SETSEL - originally by SKAN: sets the selection to the end of the control                                                                                                                                       ;
+        SendMessage(0xC2, 0, StrPtr(message), LogWindow) ; EM_REPLACESEL
+    }
 }
 
-RunCmdReturnLine(Line, LineNum)
+RunCmdReturnLine(Line, LineNum, Feed)
 {
     LogToWindow(Line)
 }
@@ -55,8 +65,8 @@ iniPathChk()
         bootLoc := "x:\"
     }
     iniPath := bootLoc . iniName
-    LogToWindow("INI Regex command result: " . bootLoc,1,1)
-    LogToWindow("INI Path: " . iniPath,1,1)
+    LogToWindow("INI Regex command result: " . bootLoc,1,1,1)
+    LogToWindow("INI Path: " . iniPath,1,1,1)
     return iniPath
 }
 
@@ -66,7 +76,7 @@ GetFirstFreeLetter()
     freeDiskLetter := RunCMD("powershell ls function:[k-u]: -n | ?{ !(test-path $_) } | select -first 1")
     freeDiskLetter := StrReplace(freeDiskLetter, "`r`n")
     freeDiskLetter := StrReplace(freeDiskLetter, ":", "")
-    LogToWindow("First free disk letter: " . freeDiskLetter,1,1)
+    LogToWindow("First free disk letter: " . freeDiskLetter,1,1,1)
 	return freeDiskLetter
 }
 
@@ -336,7 +346,7 @@ endApp(*)
 StdOutLog(Item,*)
 {
     LogToWindow("Open StdOutput log",1,1)
-    Run "notepad.exe wimlog_" . uniqFileName . "_StdOutput.txt"
+    Run "notepad.exe " . A_ScriptDir . "\log.txt"
 }
 
 ReloadApp(Item,*)
@@ -598,10 +608,8 @@ ReadOptFastStart()
 }
 ;=====================Script START=====================
 ;Generate unique name of file
-uniqFileName := FormatTime(,"yyyy_MM_dd_HH_mm_ss")
 ;Display Main Window
 DisplayMainWindow()
-LogToWindow("Generating uniq file name for logs done",1,1)
 ;Get INI file
 iniPath := iniPathChk()
 ;Fast start without pc spec
