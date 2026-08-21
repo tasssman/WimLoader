@@ -54,7 +54,58 @@ LogToWindow(message, timeLine := 0, CR := 0, onlyLog := 0) ;timeLine (default 0)
 
 RunCmdReturnLine(Line, LineNum, Feed)
 {
-    LogToWindow(Line)
+    LogToWindow(Line,,1)
+}
+
+LoadImaShow(Line, LinNum, Feed)
+{
+    global LogWindow
+
+    static progressStart := -1
+    static progressLength := 0
+    static progressActive := false
+
+    ; Progress
+    if RegExMatch(Line, "\d+(?:\.\d+)?%", &percent)
+    {
+        message := "Loading image: " percent[0] "   ...PLEASE WAIT..."
+
+        if !progressActive {
+            ; First progress
+            progressStart := SendMessage(0x000E, 0, 0, LogWindow) ; WM_GETTEXTLENGTH
+            SendMessage(0xB1, progressStart, progressStart, LogWindow)
+            SendMessage(0xC2, 0, StrPtr(message), LogWindow)
+            progressLength := StrLen(message)
+            progressActive := true
+            LogToWindow(message,1,1,1)
+        } else {
+            ; Replace previous progress
+            SendMessage(0xB1, progressStart, progressStart + progressLength, LogWindow)
+            SendMessage(0xC2, 0, StrPtr(message), LogWindow)
+            progressLength := StrLen(message)
+            LogToWindow(message,1,1,1)
+        }
+
+        return
+    }
+
+    ; Ignore empty lines
+    if progressActive && (Trim(Line) = "")
+    {
+        return
+    }
+
+    ; If normal text appear. End process
+    if progressActive
+    {
+        SendMessage(0xB1, -2, -1, LogWindow)
+        SendMessage(0xC2, 0, StrPtr("`r`n"), LogWindow)
+        progressStart := -1
+        progressLength := 0
+        progressActive := false
+    }
+
+    LogToWindow(Line, , 1)
 }
 
 iniPathChk()
@@ -572,10 +623,12 @@ InstallImage(*)
         LogToWindow("Done",1,1)
     }
     LogToWindow("Image loading...",1,1)
-    RunWait "dism /apply-image /imagefile:" imagesList.Text " /index:1 /applydir:" lettersInstall[2] ":\ /NoRpFix",,"Max"
-    RunWait lettersInstall[2] ":\Windows\System32\bcdboot " lettersInstall[2] ":\Windows /s " lettersInstall[1] ":"
+    RunCMD("dism /apply-image /imagefile:" imagesList.Text " /index:1 /applydir:" lettersInstall[2] ":\ /NoRpFix",,,LoadImaShow)
+    LogToWindow("Image loading... DONE",1,1)
+    LogToWindow("Seting bcdboot...",1,1)
+    RunCMD(lettersInstall[2] ":\Windows\System32\bcdboot " lettersInstall[2] ":\Windows /s " lettersInstall[1] ":",,,RunCmdReturnLine)
     Sleep 5000
-    LogToWindow("DONE.",1,1)
+    LogToWindow("Seting bcdboot... DONE",1,1)
     LogToWindow("Rebooting...",1,1)
     RunCMD("wpeutil Reboot")
 }
