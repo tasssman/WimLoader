@@ -16,7 +16,8 @@ verCurrent := ""
 defaLocImages := "\\pchw\images"
 defaLocImagesUser := "cos\images"
 defaLocImagesPass := "123edc!@#EDC"
-updateFolLoc := "\sources\"
+updateFolLoc := "Scripts\WimLoader\"
+updateBootWimLoc := "Scripts\WinPE_HW\media\sources"
 iniName := "wimloader.ini"
 version := "2.2.0"
 ;=====================Functions=====================
@@ -108,15 +109,21 @@ LoadImaShow(Line, LinNum, Feed)
     LogToWindow(Line, , 1)
 }
 
-iniPathChk()
+patchSourceWinPE()
 {
     bootLoc := RegRead("HKLM\SYSTEM\ControlSet001\Control", "PEBootRamdiskSourceDrive", "noKey")
     if(bootLoc = "noKey" )
     {
         bootLoc := "x:\"
     }
-    iniPath := bootLoc . iniName
-    LogToWindow("INI Regex command result: " . bootLoc,1,1,1)
+    return bootLoc
+}
+
+iniPathChk()
+{
+    location := patchSourceWinPE()
+    iniPath := location . iniName
+    LogToWindow("INI Regex command result: " . location,1,1,1)
     LogToWindow("INI Path: " . iniPath,1,1,1)
     return iniPath
 }
@@ -533,9 +540,10 @@ ChangePath(*)
 UpdateApp(*)
 {
     LogToWindow("Updating app...",1,1)
-    delAllConn()
-    Run "wimautoupdate.exe"
-    ExitApp
+    bootToUpdate := patchSourceWinPE() "sources"
+    RunCMD('robocopy "' defLocLett ':\' updateBootWimLoc '" "' bootToUpdate '" boot.wim /IS /IT /R:0 /W:0',,,RunCmdReturnLine)
+    LogToWindow("Updating app... DONE",1,1)
+    LogToWindow("You must reboot to apply.",1,1)
 }
 
 InstallImage(*)
@@ -692,26 +700,22 @@ if (defLocLett . ":" . updateFolLoc = "")
 {
     LogToWindow("Path to update location not found",1,1)
 } else {
-    RunCMD("xcopy " defLocLett ":\sources\wimautoupdate.exe x:\windows\system32 /y")
-    if FileExist(defLocLett . ":" . updateFolLoc . "*latest.*")
-    {
-        Loop Files defLocLett . ":" . updateFolLoc . "*latest.*"
-        {
-            RegExMatch(A_LoopFilePath, "[0-9].*[0-9]", &verUpdateFile)
-            verLatestFile := StrReplace(verUpdateFile[], "_", "")
-            verLatestToDisp := StrReplace(verUpdateFile[], "_", ".")
-            verCurrent := StrReplace(version, ".", "")
+    newestVersion := version
+    newestFile := ""
+    Loop Files defLocLett . ":" . updateFolLoc . "WimLoader_v*.exe" {
+        if RegExMatch(A_LoopFileName, "v(\d+\.\d+\.\d+)", &m) {
+            if VerCompare(m[1], newestVersion) > 0 {
+                newestVersion := m[1]
+                newestFile := A_LoopFileFullPath
+            }
         }
-        if (verLatestFile > verCurrent)
-        {
-            LogToWindow("Update found ver. " . verLatestToDisp,1,1)
-            
-            UpdateButton.Text :=  "Update to " . verLatestToDisp
-            ControlShow UpdateButton
-    
-        } else {
-            LogToWindow("Update not found.",1,1)
-        }
+    }
+
+    if newestFile {
+        LogToWindow("Update found ver. " . newestVersion,1,1)
+        UpdateButton.Text :=  "Update to " . newestVersion
+        ControlShow UpdateButton
+        ; Run newestFile
     } else {
         LogToWindow("Update not found.",1,1)
     }
