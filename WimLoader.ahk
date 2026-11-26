@@ -4,6 +4,10 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
+version := "2.2.0.001"
+updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
+availableUpdate := ""
+updateBusy := false
 iniName := "wimloader.ini"
 imagePath := ""
 ownedMappings := []
@@ -11,6 +15,14 @@ ownedMappings := []
 mainGui := Gui(, "WIM Loader - Windows image deployment")
 mainGui.BackColor := "F4F7FB"
 mainGui.SetFont("s10", "Segoe UI")
+
+updateMenu := Menu()
+updateMenu.Add("Check for WinPE update", CheckForUpdate)
+updateMenu.Add("Install WinPE update", UpdateApp)
+updateMenu.Disable("Install WinPE update")
+topMenu := MenuBar()
+topMenu.Add("Updates", updateMenu)
+mainGui.MenuBar := topMenu
 
 mainGui.SetFont("s10 bold", "Segoe UI")
 mainGui.Add("GroupBox", "x24 y24 w570 h302", "1. Select a destination disk")
@@ -292,7 +304,7 @@ GetSettingsPath()
     return RTrim(bootLoc, "\") . "\" . iniName
 }
 
-ShowNetworkLogin(path)
+ShowNetworkLogin(path, title := "Connect to image source")
 {
     global mainGui, ownedMappings
 
@@ -301,9 +313,9 @@ ShowNetworkLogin(path)
     if (settingsPath != "")
         savedUser := IniRead(settingsPath, "Network", "User", "")
 
-    loginGui := Gui("+Owner" . mainGui.Hwnd, "Connect to image source")
+    loginGui := Gui("+Owner" . mainGui.Hwnd, title)
     loginGui.SetFont("s9", "Segoe UI")
-    loginGui.Add("Text", "x16 y16 w360 h36", "Image source: " . path)
+    loginGui.Add("Text", "x16 y16 w360 h36", "Source: " . path)
     loginGui.Add("Text", "x16 y59 w90 h20", "User")
     userEdit := loginGui.Add("Edit", "x110 y56 w266 h24", savedUser)
     loginGui.Add("Text", "x16 y94 w90 h20", "Password")
@@ -380,6 +392,8 @@ ShowNetworkLogin(path)
 
 ConnectNetworkShare(path, username, password)
 {
+    global ownedMappings
+
     if !RegExMatch(path, "^(\\\\[^\\]+\\[^\\]+)", &match)
         return {Error: "Enter a valid network share path."}
     share := match[1]
@@ -446,7 +460,12 @@ DisconnectOwnedMapping(letter, share)
 
 CloseApp(*)
 {
-    global ownedMappings
+    global ownedMappings, updateBusy
+
+    if updateBusy {
+        LogToWindow("An update operation is in progress; wait before closing.", 1, 1)
+        return
+    }
 
     remaining := []
     for mapping in ownedMappings {
@@ -459,6 +478,180 @@ CloseApp(*)
         return
     }
     ExitApp()
+}
+
+CheckForUpdate(*)
+{
+    global updateSource, version, availableUpdate, updateMenu, updateBusy
+
+    if updateBusy
+        return
+    availableUpdate := ""
+    updateMenu.Disable("Install WinPE update")
+    updateBusy := true
+    updateMenu.Disable("Check for WinPE update")
+    try {
+        if !DirExist(updateSource) && !ShowNetworkLogin(updateSource, "Connect to update source") {
+            LogToWindow("Update check canceled.", 1, 1)
+            return
+        }
+        manifest := ReadUpdateManifest(updateSource)
+        if (VerCompare(manifest.Version, version) <= 0) {
+            LogToWindow("No newer WinPE image found. Current WimLoader version: " . version . ".", 1, 1)
+            return
+        }
+        if !FileExist(updateSource . "\boot.wim")
+            throw Error("The update source does not contain boot.wim.")
+        availableUpdate := manifest
+        updateMenu.Enable("Install WinPE update")
+        LogToWindow("WinPE image with WimLoader " . manifest.Version . " is available. Select Updates > Install WinPE update.", 1, 1)
+    } catch Error as err {
+        LogToWindow("Update check failed: " . err.Message, 1, 1)
+    } finally {
+        updateBusy := false
+        updateMenu.Enable("Check for WinPE update")
+    }
+}
+
+ReadUpdateManifest(source)
+{
+    manifestPath := source . "\winpe-update.ini"
+    if !FileExist(manifestPath)
+        throw Error("Update manifest is missing: " . manifestPath)
+    updateVersion := IniRead(manifestPath, "WinPE", "Version", "")
+    hash := IniRead(manifestPath, "WinPE", "SHA256", "")
+    if !RegExMatch(updateVersion, "^\d+\.\d+\.\d+(?:\.\d+)?$")
+        throw Error("The update manifest contains an invalid Version.")
+    if !RegExMatch(hash, "i)^[0-9a-f]{64}$")
+        throw Error("The update manifest contains an invalid SHA256.")
+    return {Version: updateVersion, SHA256: StrUpper(hash)}
+}
+
+GetUpdateTarget()
+{
+    isWinPE := false
+    Loop Reg "HKLM\SYSTEM\CurrentControlSet\Control", "K" {
+        if (A_LoopRegName = "MiniNT") {
+            isWinPE := true
+            break
+        }
+    }
+    if !isWinPE
+        throw Error("WinPE updates can only be installed from WinPE.")
+    settingsPath := GetSettingsPath()
+    if (settingsPath = "")
+        throw Error("The WinPE boot source drive could not be identified; X: will not be used.")
+    SplitPath(settingsPath,, &root)
+    target := root . "\sources\boot.wim"
+    if !FileExist(target)
+        throw Error("The boot source drive does not contain sources\boot.wim.")
+    return target
+}
+
+GetImageHash(path)
+{
+    quotedPath := StrReplace(path, "'", "''")
+    output := RunCMD("powershell -NoProfile -Command `"$ErrorActionPreference = 'Stop'; (Get-FileHash -LiteralPath '"
+        . quotedPath . "' -Algorithm SHA256).Hash`"")
+    if (RunCMD.ExitCode != 0)
+        throw Error("SHA-256 calculation failed (exit code " . RunCMD.ExitCode . "): " . Trim(output))
+    hash := Trim(output, " `t`r`n")
+    if !RegExMatch(hash, "i)^[0-9a-f]{64}$")
+        throw Error("SHA-256 calculation returned an invalid result.")
+    return StrUpper(hash)
+}
+
+UpdateApp(*)
+{
+    global mainGui, updateSource, availableUpdate, updateBusy, updateMenu
+
+    if updateBusy
+        return
+    if !IsObject(availableUpdate) {
+        LogToWindow("Check for an available update before installing.", 1, 1)
+        return
+    }
+    updateBusy := true
+    mainGui.Opt("+Disabled")
+    updateMenu.Disable("Check for WinPE update")
+    updateMenu.Disable("Install WinPE update")
+    try {
+        target := GetUpdateTarget()
+        InstallBootImage(updateSource, target, availableUpdate)
+        availableUpdate := ""
+        LogToWindow("WinPE update completed. Restart to use the updated WimLoader.", 1, 1)
+    } catch Error as err {
+        LogToWindow("WinPE update failed: " . err.Message, 1, 1)
+    } finally {
+        updateBusy := false
+        mainGui.Opt("-Disabled")
+        updateMenu.Enable("Check for WinPE update")
+        if IsObject(availableUpdate)
+            updateMenu.Enable("Install WinPE update")
+    }
+}
+
+InstallBootImage(source, target, expected)
+{
+    manifest := ReadUpdateManifest(source)
+    if (manifest.Version != expected.Version || manifest.SHA256 != expected.SHA256)
+        throw Error("The published update changed; check for updates again.")
+    SplitPath(target,, &targetDir,,, &targetDrive)
+    stagingDir := targetDir . "\.wimloader-update"
+    stagedImage := stagingDir . "\boot.wim"
+    backup := target . ".wimloader-backup"
+    if FileExist(backup) || FileExist(stagingDir)
+        throw Error("An earlier backup or staging directory exists. Preserve or remove it manually before updating.")
+    size := FileGetSize(source . "\boot.wim")
+    if (size = 0)
+        throw Error("The published boot.wim is empty.")
+    if (DriveGetFileSystem(targetDrive) = "FAT32" && size > 4294967295)
+        throw Error("The image exceeds the FAT32 file size limit.")
+    if (DriveGetSpaceFree(targetDrive) * 1048576 < size + 1048576)
+        throw Error("Not enough free space for the new image and temporary files. The current boot.wim has not been changed.")
+
+    DirCreate(stagingDir)
+    preserveStaging := false
+    try {
+        LogToWindow("Copying WinPE image. Please wait...", 1, 1)
+        RunCMD('robocopy "' . source . '" "' . stagingDir . '" boot.wim /COPY:DAT /R:0 /W:0 /J',,, UpdateLogLine)
+        if (RunCMD.ExitCode >= 8)
+            throw Error("Robocopy failed with exit code " . RunCMD.ExitCode . ".")
+        if !FileExist(stagedImage) || FileGetSize(stagedImage) != size
+            throw Error("The copied image has an unexpected size.")
+        LogToWindow("Verifying the image SHA-256...", 1, 1)
+        if (GetImageHash(stagedImage) != expected.SHA256)
+            throw Error("The copied image SHA-256 does not match the manifest.")
+        currentManifest := ReadUpdateManifest(source)
+        if (currentManifest.Version != expected.Version || currentManifest.SHA256 != expected.SHA256)
+            throw Error("The published update changed during copying; check again.")
+        if FileExist(backup)
+            throw Error("A backup appeared during copying; the current image will not be replaced.")
+        preserveStaging := true
+        if !DllCall("Kernel32\ReplaceFileW", "str", target, "str", stagedImage, "str", backup,
+            "uint", 0, "ptr", 0, "ptr", 0, "int") {
+            errorCode := A_LastError
+            throw Error("Image replacement failed (Windows error " . errorCode
+                . "). Do not reboot until the boot image is checked. Staging and backup files have been preserved.")
+        }
+        preserveStaging := false
+        LogToWindow("Previous image retained at " . backup . ".", 1, 1)
+    } finally {
+        if !preserveStaging {
+            try {
+                if FileExist(stagedImage)
+                    FileDelete(stagedImage)
+                DirDelete(stagingDir)
+            } catch Error as err {
+                LogToWindow("Could not remove update staging files: " . err.Message, 1, 1)
+            }
+        }
+    }
+}
+
+UpdateLogLine(line, *)
+{
+    LogToWindow(line, 1, 1)
 }
 
 LogToWindow(message, timeLine := 0, CR := 0, onlyLog := 0)
