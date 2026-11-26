@@ -201,15 +201,42 @@ loadingImages(path)
 
 ChangePath(*)
 {
-    global imagePath, defaLocImages
+    global mainGui, imagePath, defaLocImages
 
     currentPath := imagePath != "" ? imagePath : defaLocImages
-    newPath := InputBox("WIMs Path:", "Enter new path for WIMs",, currentPath)
-    if (newPath.Result = "Cancel") {
-        LogToWindow("Image path change canceled.", 1, 1)
-        return
+    pathGui := Gui("+Owner" . mainGui.Hwnd, "Enter new path for WIMs")
+    pathGui.BackColor := "F4F7FB"
+    pathGui.SetFont("s9", "Segoe UI")
+    pathGui.Add("Text", "x16 y18 w440 h20 c64748B", "WIMs Path:")
+    pathEdit := pathGui.Add("Edit", "x16 y46 w440 h26", currentPath)
+    okButton := pathGui.Add("Button", "x268 y94 w90 h28 Default", "OK")
+    cancelButton := pathGui.Add("Button", "x366 y94 w90 h28", "Cancel")
+
+    okButton.OnEvent("Click", Submit)
+    cancelButton.OnEvent("Click", Cancel)
+    pathGui.OnEvent("Close", Cancel)
+    pathGui.OnEvent("Escape", Cancel)
+    mainGui.Opt("+Disabled")
+    pathGui.Show("w472 h138")
+    pathEdit.Focus()
+    SendMessage(0xB1, 0, -1, pathEdit)
+
+    Submit(*)
+    {
+        newPath := pathEdit.Value
+        pathGui.Destroy()
+        mainGui.Opt("-Disabled")
+        mainGui.Show()
+        ConnectImageSource(newPath)
     }
-    ConnectImageSource(newPath.Value)
+
+    Cancel(*)
+    {
+        pathGui.Destroy()
+        mainGui.Opt("-Disabled")
+        mainGui.Show()
+        LogToWindow("Image path change canceled.", 1, 1)
+    }
 }
 
 RefreshImages(*)
