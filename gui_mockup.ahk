@@ -60,7 +60,9 @@ mainGui.Add("Progress", "x626 y342 w310 h10", 0)
 LogWindow := mainGui.Add("Edit", "x626 y361 w310 h231 ReadOnly Multi")
 
 mainGui.SetFont("s9", "Segoe UI")
-footerStatus := mainGui.Add("Text", "x24 y626 w600 h22 c52647A", "No disks or images loaded")
+footerStatus := mainGui.Add("Text", "x24 y626 w175 h22 c52647A", "No disks or images loaded")
+mainGui.Add("Text", "x210 y626 w26 h22 c52647A", "IP:")
+ipField := mainGui.Add("Edit", "x236 y624 w388 h24 ReadOnly BackgroundF4F7FB -Border -E0x200")
 mainGui.Add("Text", "x656 y626 w300 h22 Right c64748B", "WinPE-ready  |  WIM Loader")
 
 UsbShow.OnEvent("Click", ShowDrivesUsb)
@@ -73,7 +75,30 @@ mainGui.OnEvent("Close", CloseApp)
 mainGui.Show("w980 h660")
 LogToWindow("Main menu was loaded", 1, 1)
 listDisk()
+IpCheck()
 ConnectImageSource(defaLocImages)
+
+IpCheck()
+{
+    global ipField
+
+    LogToWindow("Loading IPv4 addresses...", 1, 1)
+    ipAddress := RunCMD("powershell gwmi Win32_NetworkAdapterConfiguration | Where { $_.IPAddress } | Select -Expand IPAddress | Where { $_ -notlike '*:*' }")
+    if (RunCMD.ExitCode != 0) {
+        ipField.Value := "Unable to load IPv4 addresses."
+        LogToWindow("Could not load IPv4 addresses (exit code " . RunCMD.ExitCode . "): " . Trim(ipAddress), 1, 1)
+        return
+    }
+
+    ipAddress := Trim(ipAddress, " `t`r`n")
+    if (ipAddress = "") {
+        ipField.Value := "No IPv4 addresses found."
+        LogToWindow("No IPv4 addresses found.", 1, 1)
+        return
+    }
+    ipField.Value := RegExReplace(ipAddress, "\R+", " | ")
+    LogToWindow("IPv4 addresses loaded.", 1, 1)
+}
 
 listDisk(*)
 {
