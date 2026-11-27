@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.002"
+version := "2.2.0.003"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -12,7 +12,7 @@ iniName := "wimloader.ini"
 imagePath := ""
 ownedMappings := []
 
-mainGui := Gui(, "WIM Loader - Windows image deployment")
+mainGui := Gui(, "WIM Loader " . version)
 mainGui.BackColor := "F4F7FB"
 mainGui.SetFont("s10", "Segoe UI")
 
