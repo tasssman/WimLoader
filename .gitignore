@@ -1,3 +1,5 @@
 .vscode
 WimLoaderGui.exe
 WimLoader.exe
+/WinPE_HW/
+/local/

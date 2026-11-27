@@ -27,3 +27,18 @@ WinPE updates:
 - Restart only after successful replacement. If replacement fails, check the boot image and preserved files before rebooting. Before another update, archive the backup elsewhere and remove the earlier backup/staging directory after checking its contents.
 - Keep the application's `version` variable consistent with the WimLoader version included when building each published image. SHA-256 detects mismatched or corrupted content; it is not a digital signature and does not authenticate the publisher.
 - To test an update from `2.2.0.001` to `2.2.0.002`, build the newer application into a new `boot.wim`, then publish that image with `Version=2.2.0.002` and its matching hash. Changing only the manifest version does not update the application inside the image.
+
+Publishing a WinPE update:
+- Place a prepared, trusted WinPE image at `local\WinPE_HW\media\sources\boot.wim` in this repository. Place `Ahk2Exe.exe` and the AutoHotkey v2 `AutoHotkey64.exe` base executable in `local`. This directory is ignored by Git. The script does not create WinPE or add drivers or optional components.
+- Set the `version` in `WimLoader.ahk` to the version being published. Use a newer version than the one installed on clients.
+- Run an elevated PowerShell session with DISM available and write access to the update share:
+
+  ```powershell
+  .\deploy.ps1
+  ```
+
+- Pass `-CompilerPath`, `-AutoHotkeyBasePath`, `-ImagePath` or `-Destination` to override the defaults. The default destination is `\\ntshare\helpdesk\scripts\WinPE_HW\media\sources`. The script compiles the application, copies the source image to a temporary working directory, adds the EXE to `Windows\System32`, and commits the copy. The original image is not changed.
+- The script reports compilation start and completion, and copying the EXE into the mounted image. It waits for Ahk2Exe to exit before checking its exit code and output file. If the compiler displays an error dialog, dismiss it so the script can report the failure and clean up.
+- The image is copied to the destination and verified before publication. The previous manifest is removed first; the new manifest, containing the source version and image SHA-256, is published last. Update checks may temporarily fail during publication.
+- Previous published files are replaced without a backup. The temporary `wimloader-deploy-*` directory is removed after successful publication; existing directories from earlier deployments are not removed. The persistent `.wimloader-deploy.lock` file prevents concurrent deployments and should not be removed while a deployment is running. Ensure sufficient free space for the local working copy and staged image on the destination.
+- If publication fails, inspect the reported `wimloader-deploy-*` directory and the destination before retrying. There is no automatic rollback: publish a matching image and manifest again, publishing the manifest last. If DISM cannot discard a mount, preserve the reported working directory and resolve the mount before removing it.
