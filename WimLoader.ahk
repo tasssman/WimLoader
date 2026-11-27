@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.008"
+version := "2.2.0.009"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -28,7 +28,7 @@ diskList.ModifyCol(2, 190)
 diskList.ModifyCol(3, 85)
 diskList.ModifyCol(4, 150)
 diskStatusText := mainGui.Add("Text", "x40 y276 w520 h20 c64748B", "No destination disk selected")
-mainGui.Add("Button", "x40 y298 w160 h27 Disabled", "Format selected disk")
+formatDiskButton := mainGui.Add("Button", "x40 y298 w160 h27 Disabled", "Format selected disk")
 mainGui.Add("Button", "x208 y298 w130 h27 Disabled", "Format all disks")
 
 mainGui.SetFont("s10 bold", "Segoe UI")
@@ -74,6 +74,7 @@ updateButton.OnEvent("Click", UpdateApp)
 UsbShow.OnEvent("Click", ShowDrivesUsb)
 RefreshDiskButton.OnEvent("Click", RefreshDisks)
 diskList.OnEvent("ItemSelect", DiskSelectionChanged)
+formatDiskButton.OnEvent("Click", FormatSelectedDisk)
 ChangePathButton.OnEvent("Click", ChangePath)
 RefreshImagesButton.OnEvent("Click", RefreshImages)
 imagesList.OnEvent("Change", ImageSelectionChanged)
@@ -108,11 +109,12 @@ IpCheck()
 
 listDisk(*)
 {
-    global UsbShow, diskList, diskStatusText, footerStatus, diskRows
+    global UsbShow, diskList, diskStatusText, footerStatus, diskRows, formatDiskButton
     global reviewDestination, reviewModel
 
     LogToWindow("Listing disks...", 1, 1)
     diskList.Delete()
+    formatDiskButton.Enabled := false
     diskRows := []
     diskStatusText.Value := "Loading disks..."
     reviewDestination.Value := "Not selected"
@@ -133,7 +135,8 @@ listDisk(*)
     }
 
     for , item in records {
-        if !RegExMatch(item, "(Number.*?: )(.*)(Path)", &diskId)
+        if !RegExMatch(item, "(UniqueId.*?: )(.*?)(Number)", &uniqueId)
+            || !RegExMatch(item, "(Number.*?: )(.*)(Path)", &diskId)
             || !RegExMatch(item, "(Model.*?: )(.*)(Serial)", &model)
             || !RegExMatch(item, "(Size.*?: )(.*)(Allocated)", &size)
             || !RegExMatch(item, "(PartitionStyle.*?: )(.*)(IsReadOnly)", &partitionType) {
@@ -145,7 +148,7 @@ listDisk(*)
         modelName := Trim(model[2])
         diskSize := Trim(size[2])
         partitionStyle := Trim(partitionType[2])
-        diskRows.Push({Number: number, Model: modelName})
+        diskRows.Push({Number: number, Model: modelName, UniqueId: Trim(uniqueId[2])})
         diskList.Add(, "Disk " . number, modelName, diskSize, partitionStyle)
     }
 
@@ -179,15 +182,98 @@ RefreshDisks(*)
 
 DiskSelectionChanged(control, row, selected)
 {
-    global diskRows, reviewDestination, reviewModel
+    global diskRows, reviewDestination, reviewModel, formatDiskButton
 
-    if !selected
+    if !selected {
+        if !control.GetNext()
+            formatDiskButton.Enabled := false
         return
+    }
 
     disk := diskRows[row]
+    formatDiskButton.Enabled := true
     reviewDestination.Value := "Disk " . disk.Number
     reviewModel.Value := disk.Model
     LogToWindow("Selected destination disk " . disk.Number . ": " . disk.Model, 1, 1)
+}
+
+FormatSelectedDisk(*)
+{
+    global diskList, diskRows, mainGui, updateBusy
+
+    if updateBusy
+        return
+    row := diskList.GetNext()
+    if !row {
+        LogToWindow("Select a disk before formatting.", 1, 1)
+        return
+    }
+    disk := diskRows[row]
+    if !RegExMatch(disk.Number, "^\d+$") || disk.UniqueId = "" {
+        LogToWindow("Cannot format the selected disk: its number or unique ID is invalid.", 1, 1)
+        return
+    }
+
+    updateBusy := true
+    mainGui.Opt("+Disabled")
+    scriptPath := ""
+    try {
+        UpdateProgress(0, "Formatting disk " . disk.Number . "...")
+        LogToWindow("Formatting disk " . disk.Number . ": " . disk.Model . ".", 1, 1)
+        tempName := Buffer(520, 0)
+        if !DllCall("Kernel32\GetTempFileNameW", "str", A_Temp, "str", "wld", "uint", 0, "ptr", tempName, "uint")
+            throw OSError(A_LastError, , "Could not create the disk formatting script.")
+        scriptPath := StrGet(tempName)
+        FileMove(scriptPath, scriptPath . ".ps1")
+        scriptPath .= ".ps1"
+        expectedId := StrReplace(disk.UniqueId, "'", "''")
+        script :=
+        (
+            "$ErrorActionPreference = 'Stop'
+            try {
+                $number = " . disk.Number . "
+                $expectedId = '" . expectedId . "'
+                $disk = Get-Disk -Number $number -ErrorAction Stop
+                if ([string]::IsNullOrWhiteSpace($disk.UniqueId) -or $disk.UniqueId -cne $expectedId) {
+                    throw 'The selected disk identity changed; formatting was canceled.'
+                }
+                if ($disk.PartitionStyle -ne 'RAW') {
+                    Clear-Disk -InputObject $disk -RemoveData -RemoveOEM -Confirm:$false -ErrorAction Stop
+                }
+                $disk = Get-Disk -Number $number -ErrorAction Stop
+                if ($disk.UniqueId -cne $expectedId) {
+                    throw 'The disk identity changed after clearing; formatting stopped.'
+                }
+                $disk = Initialize-Disk -InputObject $disk -PartitionStyle GPT -PassThru -Confirm:$false -ErrorAction Stop
+                $partition = New-Partition -DiskNumber $disk.Number -UseMaximumSize -AssignDriveLetter -ErrorAction Stop
+                Format-Volume -Partition $partition -FileSystem NTFS -Confirm:$false -ErrorAction Stop | Out-Null
+                Write-Output 'Disk formatting completed.'
+            } catch {
+                [Console]::Error.WriteLine($_.Exception.Message)
+                exit 1
+            }"
+        )
+        FileAppend(script, scriptPath, "UTF-8")
+        RunCMD('powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' . scriptPath . '"',,, ProcessCommandOutput)
+        if (RunCMD.ExitCode != 0)
+            throw Error("Disk formatting failed (exit code " . RunCMD.ExitCode . "). The disk may have been partially modified; inspect it before retrying.")
+        UpdateProgress(100, "Disk formatting completed")
+        LogToWindow("Disk " . disk.Number . " formatted successfully.", 1, 1)
+    } catch Error as err {
+        UpdateProgress(, "Disk formatting failed")
+        LogToWindow("Disk formatting failed: " . err.Message, 1, 1)
+    } finally {
+        if (scriptPath != "") {
+            try FileDelete(scriptPath)
+            catch Error as err
+                LogToWindow("Could not remove temporary formatting script: " . err.Message, 1, 1)
+        }
+        try listDisk()
+        catch Error as err
+            LogToWindow("Could not refresh the disk list: " . err.Message, 1, 1)
+        mainGui.Opt("-Disabled")
+        updateBusy := false
+    }
 }
 
 ConnectImageSource(path)
