@@ -9,6 +9,7 @@ New GUI:
 - Copy `WimLoader.exe` to the WinPE image or another location accessible from WinPE and launch it there.
 - The legacy source is retained in `WimLoader_old.ahk`.
 - The GUI lists disks and WIM files. Formatting and installation remain disabled.
+- Command progress (standalone percentages or DISM-style progress bars) is shown in the Activity progress bar and percentage label instead of filling the log window. Other output, including errors containing a percentage, remains in the log. WinPE image copying uses this shared output handler; phases without measurable progress show a status without a percentage.
 - For an inaccessible network image source, enter credentials in the connection dialog. Only the user name is saved to `wimloader.ini` on the WinPE source drive; the password is not saved. If the source drive is unavailable or not writable, the dialog reports that the user name could not be saved.
 
 WinPE updates:

@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.003"
+version := "2.2.0.004"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -58,9 +58,9 @@ mainGui.Add("Text", "x626 y254 w314 h20 Center c64748B", "Installation not yet a
 mainGui.SetFont("s10 bold", "Segoe UI")
 mainGui.Add("GroupBox", "x610 y290 w346 h318", "Activity")
 mainGui.SetFont("s9", "Segoe UI")
-mainGui.Add("Text", "x626 y317 w250 h20", "Ready")
-mainGui.Add("Text", "x896 y317 w40 h20 Right c64748B", "0%")
-mainGui.Add("Progress", "x626 y342 w310 h10", 0)
+activityStatus := mainGui.Add("Text", "x626 y317 w230 h20", "Ready")
+progressText := mainGui.Add("Text", "x866 y317 w70 h20 Right c64748B", "0%")
+activityProgress := mainGui.Add("Progress", "x626 y342 w310 h10", 0)
 LogWindow := mainGui.Add("Edit", "x626 y361 w310 h231 ReadOnly Multi")
 
 mainGui.SetFont("s9", "Segoe UI")
@@ -593,13 +593,16 @@ UpdateApp(*)
     mainGui.Opt("+Disabled")
     updateButton.Enabled := false
     try {
+        UpdateProgress(0, "Preparing WinPE update...")
         target := GetUpdateTarget()
         InstallBootImage(updateSource, target, availableUpdate)
         availableUpdate := ""
         updateButton.Visible := false
         footerBrand.Visible := true
+        UpdateProgress(100, "WinPE update completed")
         LogToWindow("WinPE update completed. Restart to use the updated WimLoader.", 1, 1)
     } catch Error as err {
+        UpdateProgress(, "WinPE update failed")
         LogToWindow("WinPE update failed: " . err.Message, 1, 1)
     } finally {
         updateBusy := false
@@ -630,12 +633,14 @@ InstallBootImage(source, target, expected)
     DirCreate(stagingDir)
     preserveStaging := false
     try {
+        UpdateProgress(0, "Copying WinPE image...")
         LogToWindow("Copying WinPE image. Please wait...", 1, 1)
-        RunCMD('robocopy "' . source . '" "' . stagingDir . '" boot.wim /COPY:DAT /R:0 /W:0 /J',,, UpdateLogLine)
+        RunCMD('robocopy "' . source . '" "' . stagingDir . '" boot.wim /COPY:DAT /R:0 /W:0 /J',,, ProcessCommandOutput)
         if (RunCMD.ExitCode >= 8)
             throw Error("Robocopy failed with exit code " . RunCMD.ExitCode . ".")
         if !FileExist(stagedImage) || FileGetSize(stagedImage) != size
             throw Error("The copied image has an unexpected size.")
+        UpdateProgress(, "Verifying image SHA-256...")
         LogToWindow("Verifying the image SHA-256...", 1, 1)
         if (GetImageHash(stagedImage) != expected.SHA256)
             throw Error("The copied image SHA-256 does not match the manifest.")
@@ -644,6 +649,7 @@ InstallBootImage(source, target, expected)
             throw Error("The published update changed during copying; check again.")
         if FileExist(backup)
             throw Error("A backup appeared during copying; the current image will not be replaced.")
+        UpdateProgress(, "Replacing boot image...")
         preserveStaging := true
         if !DllCall("Kernel32\ReplaceFileW", "str", target, "str", stagedImage, "str", backup,
             "uint", 0, "ptr", 0, "ptr", 0, "int") {
@@ -666,9 +672,29 @@ InstallBootImage(source, target, expected)
     }
 }
 
-UpdateLogLine(line, *)
+UpdateProgress(percent := "", status := "")
 {
+    global activityProgress, progressText, activityStatus
+
+    if (percent != "" && (!IsNumber(percent) || percent < 0 || percent > 100))
+        throw ValueError("Progress must be a number between 0 and 100.")
+    activityProgress.Value := percent = "" ? 0 : Round(percent)
+    progressText.Value := percent = "" ? "" : percent . "%"
+    if (status != "")
+        activityStatus.Value := status
+}
+
+ProcessCommandOutput(line, *)
+{
+    if RegExMatch(line, "^\s*(?:\[[=.\s]*(\d+(?:[.,]\d+)?)\s*%[=.\s]*\]|(\d+(?:[.,]\d+)?)\s*%)\s*$", &match) {
+        percent := StrReplace(match[1] != "" ? match[1] : match[2], ",", ".") + 0
+        if (percent >= 0 && percent <= 100) {
+            UpdateProgress(percent)
+            return ""
+        }
+    }
     LogToWindow(line, 1, 1)
+    return ""
 }
 
 LogToWindow(message, timeLine := 0, CR := 0, onlyLog := 0)
