@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.012"
+version := "2.2.0.013"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -933,6 +933,8 @@ UpdateProgress(percent := "", status := "")
 
 ProcessCommandOutput(line, *)
 {
+    if RegExMatch(line, "^\s*$")
+        return ""
     if RegExMatch(line, "^\s*(?:\[[=.\s]*(\d+(?:[.,]\d+)?)\s*%[=.\s]*\]|(\d+(?:[.,]\d+)?)\s*%)\s*$", &match) {
         percent := StrReplace(match[1] != "" ? match[1] : match[2], ",", ".") + 0
         if (percent >= 0 && percent <= 100) {
