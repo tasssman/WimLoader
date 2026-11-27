@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.001"
+version := "2.2.0.002"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -15,14 +15,6 @@ ownedMappings := []
 mainGui := Gui(, "WIM Loader - Windows image deployment")
 mainGui.BackColor := "F4F7FB"
 mainGui.SetFont("s10", "Segoe UI")
-
-updateMenu := Menu()
-updateMenu.Add("Check for WinPE update", CheckForUpdate)
-updateMenu.Add("Install WinPE update", UpdateApp)
-updateMenu.Disable("Install WinPE update")
-topMenu := MenuBar()
-topMenu.Add("Updates", updateMenu)
-mainGui.MenuBar := topMenu
 
 mainGui.SetFont("s10 bold", "Segoe UI")
 mainGui.Add("GroupBox", "x24 y24 w570 h302", "1. Select a destination disk")
@@ -75,7 +67,9 @@ mainGui.SetFont("s9", "Segoe UI")
 footerStatus := mainGui.Add("Text", "x24 y626 w175 h22 c52647A", "No disks or images loaded")
 mainGui.Add("Text", "x210 y626 w26 h22 c52647A", "IP:")
 ipField := mainGui.Add("Edit", "x236 y624 w388 h24 ReadOnly BackgroundF4F7FB -Border -E0x200")
-mainGui.Add("Text", "x656 y626 w300 h22 Right c64748B", "WinPE-ready  |  WIM Loader")
+footerBrand := mainGui.Add("Text", "x656 y626 w300 h22 Right c64748B", "WinPE-ready  |  WIM Loader")
+updateButton := mainGui.Add("Button", "x710 y620 w246 h32 Hidden", "")
+updateButton.OnEvent("Click", UpdateApp)
 
 UsbShow.OnEvent("Click", ShowDrivesUsb)
 RefreshDiskButton.OnEvent("Click", RefreshDisks)
@@ -221,6 +215,7 @@ ConnectImageSource(path)
     imagePathText.Value := path
     imagesList.Delete()
     reviewImage.Value := "Not selected"
+    CheckForUpdate()
     loadingImages(path)
     return true
 }
@@ -352,6 +347,8 @@ ShowNetworkLogin(path, title := "Connect to image source")
 
         connectButton.Enabled := false
         result := ConnectNetworkShare(path, username, password)
+        if (result.Error = "")
+            ConnectUpdateSource(username, password)
         password := ""
         passwordEdit.Value := ""
         connectButton.Enabled := true
@@ -390,35 +387,53 @@ ShowNetworkLogin(path, title := "Connect to image source")
     }
 }
 
-ConnectNetworkShare(path, username, password)
+ConnectUpdateSource(username, password)
+{
+    global updateSource, ownedMappings
+
+    try {
+        if DirExist(updateSource)
+            return
+        result := ConnectNetworkShare(updateSource, username, password, false)
+        if (result.Error != "")
+            throw Error(result.Error)
+        ownedMappings.Push({Letter: result.Letter, Share: result.Share})
+    } catch Error as err {
+        LogToWindow("Could not connect to the update source: " . err.Message, 1, 1)
+    }
+}
+
+ConnectNetworkShare(path, username, password, assignDrive := true)
 {
     global ownedMappings
 
     if !RegExMatch(path, "^(\\\\[^\\]+\\[^\\]+)", &match)
         return {Error: "Enter a valid network share path."}
     share := match[1]
-    drives := DriveGetList()
     letter := ""
-    Loop Parse "KLMNOPQRSTU" {
-        if InStr(drives, A_LoopField)
-            continue
-        candidate := A_LoopField . ":"
-        remote := Buffer(32768, 0)
-        length := remote.Size // 2
-        status := DllCall("mpr\WNetGetConnectionW", "str", candidate, "ptr", remote, "uint*", &length, "uint")
-        if (status = 2250) {
-            letter := candidate
-            break
+    if assignDrive {
+        drives := DriveGetList()
+        Loop Parse "KLMNOPQRSTU" {
+            if InStr(drives, A_LoopField)
+                continue
+            candidate := A_LoopField . ":"
+            remote := Buffer(32768, 0)
+            length := remote.Size // 2
+            status := DllCall("mpr\WNetGetConnectionW", "str", candidate, "ptr", remote, "uint*", &length, "uint")
+            if (status = 2250) {
+                letter := candidate
+                break
+            }
+            if (status != 0 && status != 1201)
+                return {Error: "Could not check drive " . candidate . " (Windows error " . status . ")."}
         }
-        if (status != 0 && status != 1201)
-            return {Error: "Could not check drive " . candidate . " (Windows error " . status . ")."}
+        if (letter = "")
+            return {Error: "No free drive letter is available between K: and U:."}
     }
-    if (letter = "")
-        return {Error: "No free drive letter is available between K: and U:."}
 
     resource := Buffer(16 + 4 * A_PtrSize, 0)
     NumPut("uint", 1, resource, 4)
-    NumPut("ptr", StrPtr(letter), resource, 16)
+    NumPut("ptr", assignDrive ? StrPtr(letter) : 0, resource, 16)
     NumPut("ptr", StrPtr(share), resource, 16 + A_PtrSize)
     status := DllCall("mpr\WNetAddConnection2W", "ptr", resource, "str", password, "str", username, "uint", 4, "uint")
     if (status != 0)
@@ -427,34 +442,37 @@ ConnectNetworkShare(path, username, password)
     if !DirExist(path) {
         if !DisconnectOwnedMapping(letter, share)
             ownedMappings.Push({Letter: letter, Share: share})
-        return {Error: "Connected to the share, but the image folder is not accessible."}
+        return {Error: "Connected to the share, but the requested folder is not accessible."}
     }
-    LogToWindow("Connected image source: " . share . " (" . letter . ")", 1, 1)
+    LogToWindow("Connected network share: " . share . (letter != "" ? " (" . letter . ")" : " (UNC)") . ".", 1, 1)
     return {Error: "", Letter: letter, Share: share}
 }
 
 DisconnectOwnedMapping(letter, share)
 {
-    remote := Buffer(32768, 0)
-    length := remote.Size // 2
-    status := DllCall("mpr\WNetGetConnectionW", "str", letter, "ptr", remote, "uint*", &length, "uint")
-    if (status = 2250)
-        return true
-    if (status != 0) {
-        LogToWindow("Could not check mapping " . letter . " (Windows error " . status . ").", 1, 1)
-        return false
-    }
-    if (StrCompare(RTrim(StrGet(remote), "\"), RTrim(share, "\"), false) != 0) {
-        LogToWindow("Mapping " . letter . " has changed; leaving it connected.", 1, 1)
-        return true
+    if (letter != "") {
+        remote := Buffer(32768, 0)
+        length := remote.Size // 2
+        status := DllCall("mpr\WNetGetConnectionW", "str", letter, "ptr", remote, "uint*", &length, "uint")
+        if (status = 2250)
+            return true
+        if (status != 0) {
+            LogToWindow("Could not check mapping " . letter . " (Windows error " . status . ").", 1, 1)
+            return false
+        }
+        if (StrCompare(RTrim(StrGet(remote), "\"), RTrim(share, "\"), false) != 0) {
+            LogToWindow("Mapping " . letter . " has changed; leaving it connected.", 1, 1)
+            return true
+        }
     }
 
-    status := DllCall("mpr\WNetCancelConnection2W", "str", letter, "uint", 0, "int", false, "uint")
-    if (status != 0) {
-        LogToWindow("Could not disconnect mapping " . letter . " (Windows error " . status . ").", 1, 1)
+    connection := letter != "" ? letter : share
+    status := DllCall("mpr\WNetCancelConnection2W", "str", connection, "uint", 0, "int", false, "uint")
+    if (status != 0 && status != 2250) {
+        LogToWindow("Could not disconnect " . connection . " (Windows error " . status . ").", 1, 1)
         return false
     }
-    LogToWindow("Disconnected image source mapping " . letter . ".", 1, 1)
+    LogToWindow("Disconnected network connection " . connection . ".", 1, 1)
     return true
 }
 
@@ -482,19 +500,18 @@ CloseApp(*)
 
 CheckForUpdate(*)
 {
-    global updateSource, version, availableUpdate, updateMenu, updateBusy
+    global updateSource, version, availableUpdate, updateButton, footerBrand, updateBusy
 
     if updateBusy
         return
     availableUpdate := ""
-    updateMenu.Disable("Install WinPE update")
+    updateButton.Visible := false
+    footerBrand.Visible := true
     updateBusy := true
-    updateMenu.Disable("Check for WinPE update")
     try {
-        if !DirExist(updateSource) && !ShowNetworkLogin(updateSource, "Connect to update source") {
-            LogToWindow("Update check canceled.", 1, 1)
-            return
-        }
+        LogToWindow("Checking for a WinPE update...", 1, 1)
+        if !DirExist(updateSource)
+            throw Error("The update source is not accessible: " . updateSource)
         manifest := ReadUpdateManifest(updateSource)
         if (VerCompare(manifest.Version, version) <= 0) {
             LogToWindow("No newer WinPE image found. Current WimLoader version: " . version . ".", 1, 1)
@@ -503,13 +520,14 @@ CheckForUpdate(*)
         if !FileExist(updateSource . "\boot.wim")
             throw Error("The update source does not contain boot.wim.")
         availableUpdate := manifest
-        updateMenu.Enable("Install WinPE update")
-        LogToWindow("WinPE image with WimLoader " . manifest.Version . " is available. Select Updates > Install WinPE update.", 1, 1)
+        updateButton.Text := "Update to " . manifest.Version
+        footerBrand.Visible := false
+        updateButton.Visible := true
+        LogToWindow("WinPE image with WimLoader " . manifest.Version . " is available. Click " . updateButton.Text . " to install.", 1, 1)
     } catch Error as err {
         LogToWindow("Update check failed: " . err.Message, 1, 1)
     } finally {
         updateBusy := false
-        updateMenu.Enable("Check for WinPE update")
     }
 }
 
@@ -563,7 +581,7 @@ GetImageHash(path)
 
 UpdateApp(*)
 {
-    global mainGui, updateSource, availableUpdate, updateBusy, updateMenu
+    global mainGui, updateSource, availableUpdate, updateBusy, updateButton, footerBrand
 
     if updateBusy
         return
@@ -573,21 +591,20 @@ UpdateApp(*)
     }
     updateBusy := true
     mainGui.Opt("+Disabled")
-    updateMenu.Disable("Check for WinPE update")
-    updateMenu.Disable("Install WinPE update")
+    updateButton.Enabled := false
     try {
         target := GetUpdateTarget()
         InstallBootImage(updateSource, target, availableUpdate)
         availableUpdate := ""
+        updateButton.Visible := false
+        footerBrand.Visible := true
         LogToWindow("WinPE update completed. Restart to use the updated WimLoader.", 1, 1)
     } catch Error as err {
         LogToWindow("WinPE update failed: " . err.Message, 1, 1)
     } finally {
         updateBusy := false
         mainGui.Opt("-Disabled")
-        updateMenu.Enable("Check for WinPE update")
-        if IsObject(availableUpdate)
-            updateMenu.Enable("Install WinPE update")
+        updateButton.Enabled := true
     }
 }
 

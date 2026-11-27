@@ -12,9 +12,10 @@ New GUI:
 - For an inaccessible network image source, enter credentials in the connection dialog. Only the user name is saved to `wimloader.ini` on the WinPE source drive; the password is not saved. If the source drive is unavailable or not writable, the dialog reports that the user name could not be saved.
 
 WinPE updates:
-- Select **Updates > Check for WinPE update**, then **Install WinPE update**. The source is `\\ntshare\helpdesk\scripts\WinPE_HW\media\sources`, independently of the Windows image source. Credentials are requested if needed.
+- After connecting to the Windows image source, the application automatically checks `\\ntshare\helpdesk\scripts\WinPE_HW\media\sources` for a newer WinPE image. A bottom-right **Update to &lt;version&gt;** button appears only when a newer version is available; click it to install. There is no update menu.
+- When signing in to the image source, the same credentials are also used to connect to the update share without mapping another drive letter. The password is not saved or retained for later retries. Existing access is reused when available. Connection and update-check failures are reported in Activity without a separate login dialog; reconnect to the image source to check again.
 - Updates replace the entire `sources\boot.wim` on the detected WinPE boot drive, not just the application EXE. Installation is blocked outside WinPE, when the boot drive cannot be identified, or when space is insufficient.
-- Publish `boot.wim` and `winpe-update.ini` together. The manifest version identifies the WimLoader version included in that image; the current development version is `2.2.0.001`. Versions use three numeric components, with an optional fourth component for development builds (`001`, `002`, etc.). Example manifest for the next test update (replace the hash with the actual 64-character SHA-256):
+- Publish `boot.wim` and `winpe-update.ini` together. The manifest version identifies the WimLoader version included in that image. Versions use three numeric components, with an optional fourth component for development builds (`001`, `002`, etc.). Example manifest (replace the example version with the included application's version and the hash with the actual 64-character SHA-256):
 
   ```ini
   [WinPE]
