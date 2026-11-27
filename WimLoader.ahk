@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.005"
+version := "2.2.0.006"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -299,7 +299,7 @@ GetSettingsPath()
     return RTrim(bootLoc, "\") . "\" . iniName
 }
 
-ShowNetworkLogin(path, title := "Connect to image source")
+ShowNetworkLogin(path, title := "Connect to image source", assignDrive := true)
 {
     global mainGui, ownedMappings
 
@@ -346,8 +346,8 @@ ShowNetworkLogin(path, title := "Connect to image source")
         }
 
         connectButton.Enabled := false
-        result := ConnectNetworkShare(path, username, password)
-        if (result.Error = "")
+        result := ConnectNetworkShare(path, username, password, assignDrive)
+        if (result.Error = "" && assignDrive)
             ConnectUpdateSource(username, password)
         password := ""
         passwordEdit.Value := ""
@@ -382,7 +382,7 @@ ShowNetworkLogin(path, title := "Connect to image source")
     Cancel(*)
     {
         if !connected
-            LogToWindow("Image source connection canceled.", 1, 1)
+            LogToWindow("Network connection canceled: " . path, 1, 1)
         loginGui.Destroy()
     }
 }
@@ -510,6 +510,10 @@ CheckForUpdate(*)
     updateBusy := true
     try {
         LogToWindow("Checking for a WinPE update...", 1, 1)
+        if !DirExist(updateSource) && !ShowNetworkLogin(updateSource, "Connect to update source", false) {
+            LogToWindow("Update check canceled.", 1, 1)
+            return
+        }
         if !DirExist(updateSource)
             throw Error("The update source is not accessible: " . updateSource)
         manifest := ReadUpdateManifest(updateSource)
