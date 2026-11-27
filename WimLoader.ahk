@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.004"
+version := "2.2.0.005"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -619,14 +619,13 @@ InstallBootImage(source, target, expected)
     SplitPath(target,, &targetDir,,, &targetDrive)
     stagingDir := targetDir . "\.wimloader-update"
     stagedImage := stagingDir . "\boot.wim"
-    backup := target . ".wimloader-backup"
-    if FileExist(backup) || FileExist(stagingDir)
-        throw Error("An earlier backup or staging directory exists. Preserve or remove it manually before updating.")
     size := FileGetSize(source . "\boot.wim")
     if (size = 0)
         throw Error("The published boot.wim is empty.")
     if (DriveGetFileSystem(targetDrive) = "FAT32" && size > 4294967295)
         throw Error("The image exceeds the FAT32 file size limit.")
+    if FileExist(stagedImage)
+        FileDelete(stagedImage)
     if (DriveGetSpaceFree(targetDrive) * 1048576 < size + 1048576)
         throw Error("Not enough free space for the new image and temporary files. The current boot.wim has not been changed.")
 
@@ -647,18 +646,16 @@ InstallBootImage(source, target, expected)
         currentManifest := ReadUpdateManifest(source)
         if (currentManifest.Version != expected.Version || currentManifest.SHA256 != expected.SHA256)
             throw Error("The published update changed during copying; check again.")
-        if FileExist(backup)
-            throw Error("A backup appeared during copying; the current image will not be replaced.")
         UpdateProgress(, "Replacing boot image...")
         preserveStaging := true
-        if !DllCall("Kernel32\ReplaceFileW", "str", target, "str", stagedImage, "str", backup,
+        if !DllCall("Kernel32\ReplaceFileW", "str", target, "str", stagedImage, "ptr", 0,
             "uint", 0, "ptr", 0, "ptr", 0, "int") {
             errorCode := A_LastError
             throw Error("Image replacement failed (Windows error " . errorCode
-                . "). Do not reboot until the boot image is checked. Staging and backup files have been preserved.")
+                . "). Do not reboot until the boot image is checked. Inspect " . target . " and " . stagingDir . " before retrying.")
         }
         preserveStaging := false
-        LogToWindow("Previous image retained at " . backup . ".", 1, 1)
+        LogToWindow("Boot image replaced without creating a backup.", 1, 1)
     } finally {
         if !preserveStaging {
             try {

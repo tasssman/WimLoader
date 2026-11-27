@@ -25,8 +25,8 @@ WinPE updates:
   ```
 
 - Calculate the hash after building the image: `Get-FileHash -LiteralPath 'C:\WinPE_amd64\media\sources\boot.wim' -Algorithm SHA256`. Publish the manifest only after the matching image is ready.
-- The downloaded image is staged and its SHA-256 checked before replacement. Free space for a second image is required. The previous image is retained as `sources\boot.wim.wimloader-backup`; existing backups or staging directories are never overwritten automatically.
-- Restart only after successful replacement. If replacement fails, check the boot image and preserved files before rebooting. Before another update, archive the backup elsewhere and remove the earlier backup/staging directory after checking its contents.
+- The downloaded image is staged and its SHA-256 checked before replacement. Free space for a second image is required. The current `sources\boot.wim` is replaced without creating a backup. A temporary `sources\.wimloader-update\boot.wim` left by an earlier attempt is automatically removed before downloading again. Old backups do not block updates and are not deleted automatically.
+- Restart only after successful replacement. There is no automatic rollback. If replacement fails, inspect the boot image and reported staging directory before rebooting or retrying. Temporary files are removed after success; a failed replacement leaves the staging directory for inspection.
 - Keep the application's `version` variable consistent with the WimLoader version included when building each published image. SHA-256 detects mismatched or corrupted content; it is not a digital signature and does not authenticate the publisher.
 - To test an update from `2.2.0.001` to `2.2.0.002`, build the newer application into a new `boot.wim`, then publish that image with `Version=2.2.0.002` and its matching hash. Changing only the manifest version does not update the application inside the image.
 
