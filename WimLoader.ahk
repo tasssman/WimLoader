@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.006"
+version := "2.2.0.007"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -66,7 +66,7 @@ LogWindow := mainGui.Add("Edit", "x626 y361 w310 h231 ReadOnly Multi")
 mainGui.SetFont("s9", "Segoe UI")
 footerStatus := mainGui.Add("Text", "x24 y626 w175 h22 c52647A", "No disks or images loaded")
 mainGui.Add("Text", "x210 y626 w26 h22 c52647A", "IP:")
-ipField := mainGui.Add("Edit", "x236 y624 w388 h24 ReadOnly BackgroundF4F7FB -Border -E0x200")
+ipField := mainGui.Add("Edit", "x236 y626 w388 h22 ReadOnly c52647A BackgroundF4F7FB -Border -E0x200")
 footerBrand := mainGui.Add("Text", "x656 y626 w300 h22 Right c64748B", "WinPE-ready  |  WIM Loader")
 updateButton := mainGui.Add("Button", "x710 y620 w246 h32 Hidden", "")
 updateButton.OnEvent("Click", UpdateApp)
