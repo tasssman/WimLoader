@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.011"
+version := "2.2.0.012"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -494,17 +494,10 @@ InstallImage(*)
         if (RunCMD.ExitCode != 0)
             throw Error("DiskPart failed (exit code " . RunCMD.ExitCode . ").")
 
-        validation := "$ErrorActionPreference = 'Stop'; $d = Get-Disk -Number " . disk.Number
-            . "; $s = Get-Partition -DriveLetter '" . letters[1] . "'; $w = Get-Partition -DriveLetter '" . letters[2] . "'"
-            . "; $p = @(Get-Partition -DiskNumber " . disk.Number . ")"
-            . "; if ($d.PartitionStyle -ne 'GPT' -or $s.DiskNumber -ne " . disk.Number . " -or $w.DiskNumber -ne " . disk.Number
-            . " -or $s.GptType -ne '{C12A7328-F81F-11D2-BA4B-00A0C93EC93B}' -or $w.GptType -ne '{EBD0A0A2-B9E5-4433-87C0-68B6B72699C7}'"
-            . " -or $p.Count -ne 3 -or @(($p | Where-Object { $_.GptType -eq '{E3C9E316-0B5C-4DB8-817D-F92DF00215AE}' })).Count -ne 1"
-            . " -or (Get-Volume -Partition $s).FileSystem -ne 'FAT32' -or (Get-Volume -Partition $w).FileSystem -ne 'NTFS') { throw 'UEFI partition verification failed.' }"
-            . "; [Console]::WriteLine($d.UniqueId)"
-        output := RunCMD("powershell.exe -NoProfile -NonInteractive -Command `"" . validation . "`"")
-        if (RunCMD.ExitCode != 0 || StrCompare(Trim(output, " `t`r`n"), disk.UniqueId, true) != 0)
-            throw Error("DiskPart results could not be verified: " . Trim(output))
+        for letter in letters {
+            if !DirExist(letter . ":\")
+                throw Error("The drive assigned by DiskPart is not accessible: " . letter . ":\")
+        }
 
         UpdateProgress(0, "Applying Windows image...")
         LogToWindow("Applying Windows image...", 1, 1)
