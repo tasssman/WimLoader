@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.007"
+version := "2.2.0.008"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -679,9 +679,13 @@ UpdateProgress(percent := "", status := "")
 
     if (percent != "" && (!IsNumber(percent) || percent < 0 || percent > 100))
         throw ValueError("Progress must be a number between 0 and 100.")
-    activityProgress.Value := percent = "" ? 0 : Round(percent)
-    progressText.Value := percent = "" ? "" : percent . "%"
-    if (status != "")
+    value := percent = "" ? 0 : Floor(percent)
+    text := percent = "" ? "" : value . "%"
+    if (activityProgress.Value != value)
+        activityProgress.Value := value
+    if (progressText.Value != text)
+        progressText.Value := text
+    if (status != "" && activityStatus.Value != status)
         activityStatus.Value := status
 }
 
