@@ -4,7 +4,7 @@
 #Include lib\RunCmd.ahk
 
 defaLocImages := "\\pchw\images"
-version := "2.2.0.009"
+version := "2.2.0.011"
 updateSource := "\\ntshare\helpdesk\scripts\WinPE_HW\media\sources"
 availableUpdate := ""
 updateBusy := false
@@ -51,9 +51,9 @@ reviewModel := mainGui.Add("Text", "x716 y116 w220 h20", "Not selected")
 mainGui.Add("Text", "x626 y147 w82 h20 c64748B", "Image")
 reviewImage := mainGui.Add("Text", "x716 y147 w220 h34", "Not selected")
 mainGui.Add("Text", "x626 y185 w82 h20 c64748B", "Boot mode")
-mainGui.Add("DropDownList", "x716 y181 w145 Disabled", ["UEFI", "Legacy BIOS"])
-mainGui.Add("Button", "x626 y216 w314 h32 Disabled", "Install image")
-mainGui.Add("Text", "x626 y254 w314 h20 Center c64748B", "Installation not yet available")
+mainGui.Add("DropDownList", "x716 y181 w145 Choose1 Disabled", ["UEFI"])
+installButton := mainGui.Add("Button", "x626 y216 w314 h32 Disabled", "Install image")
+installStatus := mainGui.Add("Text", "x626 y254 w314 h20 Center c64748B", "Select a disk and image")
 
 mainGui.SetFont("s10 bold", "Segoe UI")
 mainGui.Add("GroupBox", "x610 y290 w346 h318", "Activity")
@@ -75,6 +75,7 @@ UsbShow.OnEvent("Click", ShowDrivesUsb)
 RefreshDiskButton.OnEvent("Click", RefreshDisks)
 diskList.OnEvent("ItemSelect", DiskSelectionChanged)
 formatDiskButton.OnEvent("Click", FormatSelectedDisk)
+installButton.OnEvent("Click", InstallImage)
 ChangePathButton.OnEvent("Click", ChangePath)
 RefreshImagesButton.OnEvent("Click", RefreshImages)
 imagesList.OnEvent("Change", ImageSelectionChanged)
@@ -116,6 +117,7 @@ listDisk(*)
     diskList.Delete()
     formatDiskButton.Enabled := false
     diskRows := []
+    UpdateInstallAvailability()
     diskStatusText.Value := "Loading disks..."
     reviewDestination.Value := "Not selected"
     reviewModel.Value := "Not selected"
@@ -187,6 +189,7 @@ DiskSelectionChanged(control, row, selected)
     if !selected {
         if !control.GetNext()
             formatDiskButton.Enabled := false
+        UpdateInstallAvailability()
         return
     }
 
@@ -194,6 +197,7 @@ DiskSelectionChanged(control, row, selected)
     formatDiskButton.Enabled := true
     reviewDestination.Value := "Disk " . disk.Number
     reviewModel.Value := disk.Model
+    UpdateInstallAvailability()
     LogToWindow("Selected destination disk " . disk.Number . ": " . disk.Model, 1, 1)
 }
 
@@ -300,6 +304,7 @@ ConnectImageSource(path)
     imagePath := path
     imagePathText.Value := path
     imagesList.Delete()
+    UpdateInstallAvailability()
     reviewImage.Value := "Not selected"
     CheckForUpdate()
     loadingImages(path)
@@ -312,6 +317,7 @@ loadingImages(path)
 
     LogToWindow("Loading images...", 1, 1)
     imagesList.Delete()
+    UpdateInstallAvailability()
     Loop Files RTrim(path, "\") . "\*.wim"
         imagesList.Add([A_LoopFileFullPath])
     LogToWindow("Loading images DONE. Current path: " . path, 1, 1)
@@ -373,6 +379,163 @@ ImageSelectionChanged(control, *)
     global reviewImage
 
     reviewImage.Value := control.Text != "" ? control.Text : "Not selected"
+    UpdateInstallAvailability()
+}
+
+UpdateInstallAvailability()
+{
+    global diskList, imagesList, installButton, installStatus
+
+    ready := diskList.GetNext() && imagesList.Text != ""
+    installButton.Enabled := ready
+    installStatus.Value := ready ? "Ready to install (UEFI)" : "Select a disk and image"
+}
+
+InstallImage(*)
+{
+    global diskList, diskRows, imagesList, mainGui, updateBusy
+
+    if updateBusy
+        return
+    row := diskList.GetNext()
+    image := imagesList.Text
+    if !row || image = "" {
+        LogToWindow("Select a disk and image before installing.", 1, 1)
+        return
+    }
+    disk := diskRows[row]
+    if !RegExMatch(disk.Number, "^\d+$") || disk.UniqueId = "" {
+        LogToWindow("Cannot install: the selected disk number or unique ID is invalid.", 1, 1)
+        return
+    }
+
+    updateBusy := true
+    mainGui.Opt("+Disabled")
+    scriptPath := ""
+    try {
+        UpdateProgress(0, "Preparing installation...")
+        LogToWindow("Installing " . image . " to disk " . disk.Number . ": " . disk.Model . " (UEFI).", 1, 1)
+        isWinPE := false
+        Loop Reg "HKLM\SYSTEM\CurrentControlSet\Control", "K" {
+            if (A_LoopRegName = "MiniNT") {
+                isWinPE := true
+                break
+            }
+        }
+        if !isWinPE
+            throw Error("Image installation is only available in WinPE.")
+        for tool in ["dism.exe", "diskpart.exe", "bcdboot.exe", "wpeutil.exe"] {
+            if !FileExist(A_WinDir . "\System32\" . tool)
+                throw Error("Required installation tool is missing: " . tool)
+        }
+        if !FileExist(image)
+            throw Error("The selected WIM file is not accessible.")
+        if RegExMatch(image, "i)^([a-z]):\\", &sourceDrive) {
+            drive := StrUpper(sourceDrive[1])
+            if (DriveGetType(drive . ":\") != "Network") {
+                sourceDisk := RunCMD("powershell.exe -NoProfile -NonInteractive -Command `"$ErrorActionPreference = 'Stop'; (Get-Partition -DriveLetter '" . drive . "').DiskNumber`"")
+                if (RunCMD.ExitCode != 0 || !RegExMatch(Trim(sourceDisk), "^\d+$"))
+                    throw Error("Could not identify the disk containing the selected image: " . Trim(sourceDisk))
+                if (Trim(sourceDisk) = disk.Number)
+                    throw Error("The selected image is on the disk that would be erased.")
+            }
+        } else if !RegExMatch(image, "^\\\\[^\\]+\\[^\\]+\\")
+            throw Error("The image path must be an absolute drive or UNC path.")
+
+        letters := []
+        usedDrives := DriveGetList()
+        Loop Parse "KLMNOPQRSTU" {
+            if InStr(usedDrives, A_LoopField)
+                continue
+            remote := Buffer(32768, 0)
+            length := remote.Size // 2
+            status := DllCall("mpr\WNetGetConnectionW", "str", A_LoopField . ":", "ptr", remote, "uint*", &length, "uint")
+            if (status = 2250)
+                letters.Push(A_LoopField)
+            else if (status != 0 && status != 1201)
+                throw Error("Could not check drive " . A_LoopField . ": (Windows error " . status . ").")
+            if (letters.Length = 2)
+                break
+        }
+        if (letters.Length < 2)
+            throw Error("Two free drive letters between K: and U: are required for installation.")
+
+        UpdateProgress(, "Checking WIM index...")
+        LogToWindow("Checking WIM index 1...", 1, 1)
+        RunCMD('dism.exe /Get-WimInfo /WimFile:"' . image . '" /Index:1',,, ProcessCommandOutput)
+        if (RunCMD.ExitCode != 0)
+            throw Error("WIM validation failed (DISM exit code " . RunCMD.ExitCode . ").")
+        identity := RunCMD("powershell.exe -NoProfile -NonInteractive -Command `"$ErrorActionPreference = 'Stop'; [Console]::WriteLine((Get-Disk -Number " . disk.Number . ").UniqueId)`"")
+        if (RunCMD.ExitCode != 0 || StrCompare(Trim(identity, " `t`r`n"), disk.UniqueId, true) != 0)
+            throw Error("The selected disk identity could not be verified; installation was canceled. " . Trim(identity))
+
+        tempName := Buffer(520, 0)
+        if !DllCall("Kernel32\GetTempFileNameW", "str", A_Temp, "str", "wld", "uint", 0, "ptr", tempName, "uint")
+            throw OSError(A_LastError, , "Could not create the DiskPart script.")
+        scriptPath := StrGet(tempName)
+        script :=
+        (
+            "select disk " . disk.Number . "
+            clean
+            convert gpt
+            create partition efi size=260
+            format quick fs=fat32 label=System
+            assign letter=" . letters[1] . "
+            create partition msr size=16
+            create partition primary
+            format quick fs=ntfs label=Windows
+            assign letter=" . letters[2] . "
+            exit"
+        )
+        FileAppend(script, scriptPath, "CP0")
+        UpdateProgress(, "Preparing UEFI partitions...")
+        LogToWindow("Preparing UEFI partitions with DiskPart...", 1, 1)
+        RunCMD('diskpart.exe /s "' . scriptPath . '"',,, ProcessCommandOutput)
+        if (RunCMD.ExitCode != 0)
+            throw Error("DiskPart failed (exit code " . RunCMD.ExitCode . ").")
+
+        validation := "$ErrorActionPreference = 'Stop'; $d = Get-Disk -Number " . disk.Number
+            . "; $s = Get-Partition -DriveLetter '" . letters[1] . "'; $w = Get-Partition -DriveLetter '" . letters[2] . "'"
+            . "; $p = @(Get-Partition -DiskNumber " . disk.Number . ")"
+            . "; if ($d.PartitionStyle -ne 'GPT' -or $s.DiskNumber -ne " . disk.Number . " -or $w.DiskNumber -ne " . disk.Number
+            . " -or $s.GptType -ne '{C12A7328-F81F-11D2-BA4B-00A0C93EC93B}' -or $w.GptType -ne '{EBD0A0A2-B9E5-4433-87C0-68B6B72699C7}'"
+            . " -or $p.Count -ne 3 -or @(($p | Where-Object { $_.GptType -eq '{E3C9E316-0B5C-4DB8-817D-F92DF00215AE}' })).Count -ne 1"
+            . " -or (Get-Volume -Partition $s).FileSystem -ne 'FAT32' -or (Get-Volume -Partition $w).FileSystem -ne 'NTFS') { throw 'UEFI partition verification failed.' }"
+            . "; [Console]::WriteLine($d.UniqueId)"
+        output := RunCMD("powershell.exe -NoProfile -NonInteractive -Command `"" . validation . "`"")
+        if (RunCMD.ExitCode != 0 || StrCompare(Trim(output, " `t`r`n"), disk.UniqueId, true) != 0)
+            throw Error("DiskPart results could not be verified: " . Trim(output))
+
+        UpdateProgress(0, "Applying Windows image...")
+        LogToWindow("Applying Windows image...", 1, 1)
+        RunCMD('dism.exe /Apply-Image /ImageFile:"' . image . '" /Index:1 /ApplyDir:' . letters[2] . ':\ /NoRpFix',,, ProcessCommandOutput)
+        if (RunCMD.ExitCode != 0)
+            throw Error("Image application failed (DISM exit code " . RunCMD.ExitCode . ").")
+        UpdateProgress(, "Configuring boot files...")
+        LogToWindow("Configuring UEFI boot files...", 1, 1)
+        RunCMD('bcdboot.exe "' . letters[2] . ':\Windows" /s ' . letters[1] . ': /f UEFI',,, ProcessCommandOutput)
+        if (RunCMD.ExitCode != 0)
+            throw Error("Boot configuration failed (BCDBoot exit code " . RunCMD.ExitCode . ").")
+        UpdateProgress(100, "Installation completed")
+        LogToWindow("Installation completed. Restarting WinPE...", 1, 1)
+        RunCMD("wpeutil.exe Reboot",,, ProcessCommandOutput)
+        if (RunCMD.ExitCode != 0)
+            throw Error("Restart failed (Wpeutil exit code " . RunCMD.ExitCode . ").")
+    } catch Error as err {
+        UpdateProgress(, "Installation failed")
+        LogToWindow("Image installation failed: " . err.Message . " The disk may have been modified; inspect it before retrying.", 1, 1)
+    } finally {
+        if (scriptPath != "") {
+            try FileDelete(scriptPath)
+            catch Error as err
+                LogToWindow("Could not remove temporary installation script: " . err.Message, 1, 1)
+        }
+        try listDisk()
+        catch Error as err
+            LogToWindow("Could not refresh the disk list: " . err.Message, 1, 1)
+        mainGui.Opt("-Disabled")
+        updateBusy := false
+    }
 }
 
 GetSettingsPath()
